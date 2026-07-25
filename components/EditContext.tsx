@@ -3,10 +3,11 @@
 import { createContext, useContext } from 'react'
 
 /**
- * Whether editing is available, computed server-side from the active provider
- * (`getProvider(session).canWrite()`) and pushed to the client. True when:
- *   - local mode (`--dir`), or
- *   - GitHub mode with a token (production logged-in owner, or `--repo --token`).
+ * Whether editing is available, computed server-side via `isAuthorizedToWrite()`
+ * and pushed to the client. True when:
+ *   - local mode (`--dir` / `next dev`), or
+ *   - localhost CLI with `--token`, or
+ *   - a hosted OAuth deploy and the logged-in user is the repo owner.
  * The render layer uses this instead of inspecting the session or the backend
  * kind directly.
  */
