@@ -52,7 +52,7 @@ no fork of this repo.
 {
   "private": true,
   "scripts": { "build": "cici build" },
-  "dependencies": { "cici": "^0.4.3" }
+  "dependencies": { "cici": "^0.6.0" }
 }
 ```
 
@@ -73,11 +73,15 @@ as one function plus static assets. Vercel serves it directly.
 | `GITHUB_ID` / `GITHUB_SECRET` | a [GitHub OAuth app](https://github.com/settings/developers) (callback `<site>/api/auth/callback/github`) — `/editor` sign-in |
 | `NEXTAUTH_SECRET` | any random string (signs the session) |
 | `NEXTAUTH_URL` | your site URL, e.g. `https://blog.example.com` |
-| `CICI_TOKEN` | **Optional — private repos only.** GitHub token with **Contents: read & write**. A public content repo needs no token: cici reads it anonymously, and `/editor` commits with your GitHub sign-in. |
 
-If your content repo is **public**, that's the recommended setup — no server token to
-manage, and only you (the repo owner, via sign-in) can publish. Reads work for everyone,
-writes only for whoever can push to the repo.
+Use a **public** content repo for a hosted deploy: cici reads it anonymously (no token),
+`/editor` requires GitHub sign-in, and only the **repo owner** can publish — everyone else
+just reads.
+
+> **Don't set `CICI_TOKEN` on a hosted deploy.** cici ≥ 0.6.0 ignores it in OAuth mode —
+> a shared server token would otherwise authorize *every* visitor to write via `/editor`.
+> `CICI_TOKEN` is only for the localhost CLI (`npx cici --repo … --token …`) on your own
+> machine; that's also where a **private** content repo is edited.
 
 Deploy. cici reads your content from `CICI_REPO` at request time, so edits (via `/editor`
 or a `git push`) show up without a redeploy.
@@ -87,8 +91,9 @@ or a `git push`) show up without a redeploy.
 
 ## Editing
 
-Open `/editor` to write posts and memos. In `--dir` mode it writes to disk; with a token
-(`--repo --token`, or `CICI_TOKEN` on a deploy) it commits back to your content repo.
+Open `/editor` to write posts and memos. In `--dir` mode it writes to disk; on the localhost
+CLI a `--token` commits back to the repo. On a hosted deploy, `/editor` requires GitHub
+sign-in and only the repo owner can commit (see the deploy note about `CICI_TOKEN` above).
 
 ## Develop cici itself
 
