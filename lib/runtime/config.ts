@@ -24,9 +24,11 @@ const DEFAULT_REPO = 'cici'
 /**
  * A hosted deploy configures a GitHub OAuth app (`GITHUB_ID`); the localhost
  * CLI does not. This is how we distinguish "public site, many visitors" from
- * "single trusted user on 127.0.0.1".
+ * "single trusted user on 127.0.0.1". The single source of truth for this
+ * predicate — imported by `lib/runtime/authz.ts` (kept here, not in `mode.ts`,
+ * to avoid a config↔mode import cycle, since it's a raw-env check).
  */
-function isHostedOAuthMode(): boolean {
+export function isHostedOAuthMode(): boolean {
   return !!process.env.GITHUB_ID
 }
 

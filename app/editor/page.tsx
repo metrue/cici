@@ -15,7 +15,7 @@ export default async function EditorPage({
 
   // Editing is restricted to the repo owner (hosted OAuth), the local user
   // (`--dir`), or a preset CICI_TOKEN on the localhost CLI. See lib/runtime/authz.
-  if (!(await isAuthorizedToWrite())) {
+  if (!(await isAuthorizedToWrite(session))) {
     // Signed in but not the owner → say so; otherwise offer GitHub sign-in.
     if (session) {
       return (

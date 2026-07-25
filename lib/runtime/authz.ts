@@ -13,13 +13,10 @@
  * client components.
  */
 
+import type { Session } from 'next-auth'
 import { getSession } from '@/lib/auth'
-import { resolveRuntimeConfig } from './config'
-
-/** A hosted deploy configures a GitHub OAuth app; the localhost CLI does not. */
-function isHostedOAuthMode(): boolean {
-  return !!process.env.GITHUB_ID
-}
+import { resolveRuntimeConfig, isHostedOAuthMode } from './config'
+import { isLocalMode } from './mode'
 
 /**
  * True when the logged-in user is the blog's owner. The owner is derived from
@@ -28,26 +25,28 @@ function isHostedOAuthMode(): boolean {
  * `GITHUB_USERNAME`.
  *
  * Local mode has no accounts: the single local user is the trusted owner.
+ * Pass `session` when the caller already has it (e.g. a page that read it) to
+ * avoid decoding the NextAuth session twice.
  */
-export async function isOwner(): Promise<boolean> {
+export async function isOwner(session?: Session | null): Promise<boolean> {
   const config = resolveRuntimeConfig()
   if (config.kind === 'local') return true
 
   const owner = config.owner
   if (!owner) return false
 
-  const session = await getSession()
+  const s = session ?? (await getSession())
 
   // Fast path: the JWT callback (lib/auth.ts) captures `profile.login` onto the
   // token for logins after that fix.
-  if (session?.user?.username) {
-    return session.user.username === owner
+  if (s?.user?.username) {
+    return s.user.username === owner
   }
 
   // Recovery path: legacy sessions predating the JWT fix carry no username but
   // do have an accessToken — resolve the GitHub login once and compare.
-  if (session?.accessToken) {
-    const login = await fetchGithubLogin(session.accessToken)
+  if (s?.accessToken) {
+    const login = await fetchGithubLogin(s.accessToken)
     if (login) return login === owner
   }
 
@@ -56,20 +55,19 @@ export async function isOwner(): Promise<boolean> {
 
 /**
  * The authorization gate for all writes. See the module header for the trust
- * models.
+ * models. Pass `session` when the caller already holds it.
  */
-export async function isAuthorizedToWrite(): Promise<boolean> {
-  const config = resolveRuntimeConfig()
-  if (config.kind === 'local') return true
+export async function isAuthorizedToWrite(session?: Session | null): Promise<boolean> {
+  // Local (`--dir` / `next dev`): own machine, always writable — checked first
+  // so a locally-configured OAuth app can't lock you out of your own files.
+  if (isLocalMode()) return true
 
-  // Localhost CLI: no OAuth app, single trusted user on loopback — a preset
+  // Localhost CLI (no OAuth app): single trusted user on loopback — a preset
   // CICI_TOKEN (from `--token`) is the write credential.
-  if (!isHostedOAuthMode()) {
-    return !!process.env.CICI_TOKEN
-  }
+  if (!isHostedOAuthMode()) return !!process.env.CICI_TOKEN
 
   // Hosted OAuth deploy: only the owner may write, via their own session.
-  return isOwner()
+  return isOwner(session)
 }
 
 /**

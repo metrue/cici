@@ -11,6 +11,7 @@ import { EditProvider } from '@/components/EditContext'
 import { Toaster } from '@/components/ui/toaster'
 import { authOptions } from '@/lib/auth'
 import { getProvider } from '@/lib/runtime/provider'
+import { isAuthorizedToWrite } from '@/lib/runtime/authz'
 import { getIconUrls } from '@/lib/githubApi'
 import { getServerSession } from 'next-auth/next'
 import { gowun_wodum } from '@/components/ui/font'
@@ -59,7 +60,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale()
   const messages = await getMessages()
   const session = await getServerSession(authOptions)
-  const canEdit = getProvider(session?.accessToken).canWrite()
+  // Show edit affordances only to whoever is actually authorized to write
+  // (owner-only on a hosted OAuth deploy) — matches the editor/upload gate.
+  const canEdit = await isAuthorizedToWrite(session)
 
   const { iconPath } = await getIconPaths(session?.accessToken)
 
