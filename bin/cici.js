@@ -47,7 +47,9 @@ Targets (exactly one required for the default command):
   --repo <owner/name> Remote GitHub content repo (read-only unless --token given)
 
 Options:
-  --token <token>    GitHub token — enables editing a --repo target
+  --token <token>    GitHub token — enables editing a --repo target from THIS
+                     machine (localhost, single trusted user). Ignored on a
+                     hosted deploy with GitHub OAuth, where writes are owner-gated.
   --port, -p <n>     Port to listen on (default: 3000)
   --host <addr>      Host to bind (default: 127.0.0.1)
   --version, -v      Print version

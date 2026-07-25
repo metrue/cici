@@ -3,6 +3,7 @@ import { makeExecutableSchema } from '@graphql-tools/schema'
 import { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { getProvider } from '@/lib/runtime/provider'
+import { isAuthorizedToWrite } from '@/lib/runtime/authz'
 import { Memo, BlogPost, Link, ExternalDiscussion } from '@/lib/types'
 import {
   getClientIP, 
@@ -184,13 +185,16 @@ const typeDefs = `
   }
 `
 
-/** Provider for a mutation — throws if the active backend is read-only. */
-function writableProvider(context: GraphQLContext) {
-  const client = getProvider(context.token?.accessToken)
-  if (!client.canWrite()) {
+/**
+ * Provider for a mutation — throws unless the current request is authorized to
+ * write. Authorization (owner-gated on hosted OAuth deploys) is decided by
+ * `isAuthorizedToWrite`, not merely by token presence.
+ */
+async function writableProvider(context: GraphQLContext) {
+  if (!(await isAuthorizedToWrite())) {
     throw new Error('Authentication required')
   }
-  return client
+  return getProvider(context.token?.accessToken)
 }
 
 const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
@@ -234,7 +238,9 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
     blogPosts: async (_parent, _args, context) => {
       try {
         const client = getProvider(context.token?.accessToken)
-        const result = await client.getBlogPosts({ includeDrafts: client.canWrite() })
+        // Drafts are owner-only — never expose them to non-owner visitors, even
+        // when logged in (canWrite() alone is true for any authenticated user).
+        const result = await client.getBlogPosts({ includeDrafts: await isAuthorizedToWrite() })
         return Array.isArray(result) ? result : []
       } catch (error) {
         console.error('Error fetching blog posts:', error)
@@ -267,7 +273,7 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
   Mutation: {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     createMemo: async (_parent, { input }, context) => {
-      const client = writableProvider(context)
+      const client = await writableProvider(context)
 
       try {
         const newMemo: Memo = {
@@ -359,7 +365,7 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     updateMemo: async (_parent, { id, input }, context) => {
-      const client = writableProvider(context)
+      const client = await writableProvider(context)
 
       try {
         const updatedMemo = await client.updateMemo(id, input.content)
@@ -374,7 +380,7 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deleteMemo: async (_parent, { id }, context) => {
-      const client = writableProvider(context)
+      const client = await writableProvider(context)
 
       try {
         await client.deleteMemo(id)
@@ -386,7 +392,7 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     saveBlogPost: async (_parent, { id, input }, context) => {
-      const client = writableProvider(context)
+      const client = await writableProvider(context)
 
       try {
         const location = {
@@ -423,7 +429,7 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
     },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deleteBlogPost: async (_parent, { id }, context) => {
-      const client = writableProvider(context)
+      const client = await writableProvider(context)
 
       try {
         await client.deleteBlogPost(id)
