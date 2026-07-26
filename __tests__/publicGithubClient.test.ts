@@ -51,9 +51,11 @@ Test content`
 
       const result = await client.getBlogPost('test.md')
 
-      // ✅ Uses raw URL for blog posts
+      // ✅ Uses raw URL for blog post bodies (cache options are attached but the
+      // endpoint is still raw.githubusercontent.com — no API budget spent).
       expect(global.fetch).toHaveBeenCalledWith(
-        'https://raw.githubusercontent.com/testuser/cici/main/data/blog/test.md'
+        'https://raw.githubusercontent.com/testuser/cici/main/data/blog/test.md',
+        expect.objectContaining({ next: expect.objectContaining({ tags: ['blog-index'] }) })
       )
       expect(result?.title).toBe('Test Post')
     })
@@ -132,6 +134,41 @@ Test content`
       fetchCalls.forEach(call => {
         expect(call[0]).toContain('raw.githubusercontent.com')
       })
+    })
+  })
+
+  describe('getBlogPosts (live directory listing)', () => {
+    it('lists the blog dir via the Contents API, then reads bodies from raw URLs', async () => {
+      const listing = [
+        { type: 'file', name: 'song-sound.md' },
+        { type: 'file', name: '.gitkeep' }, // ignored
+        { type: 'dir', name: 'nested' }, // ignored
+      ]
+      const body = `---\ntitle: Song\nstatus: published\ndate: 2026-07-24T00:00:00.000Z\n---\nbody`
+
+      ;(global.fetch as jest.Mock)
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(listing) }) // Contents API
+        .mockResolvedValueOnce({ ok: true, text: () => Promise.resolve(body) }) // raw body
+
+      const posts = await client.getBlogPosts()
+
+      // Listing goes through the Contents API...
+      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
+        'https://api.github.com/repos/testuser/cici/contents/data/blog?ref=main'
+      )
+      // ...and the body is read from a raw URL (no API budget spent on content).
+      expect((global.fetch as jest.Mock).mock.calls[1][0]).toBe(
+        'https://raw.githubusercontent.com/testuser/cici/main/data/blog/song-sound.md'
+      )
+      expect(posts).toHaveLength(1)
+      expect(posts[0].title).toBe('Song')
+    })
+
+    it('degrades to an empty list when the directory listing fails (e.g. rate limited)', async () => {
+      ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false, status: 403, statusText: 'rate limited' })
+
+      const posts = await client.getBlogPosts()
+      expect(posts).toEqual([])
     })
   })
 

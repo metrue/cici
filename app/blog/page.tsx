@@ -4,7 +4,9 @@ import { isAuthorizedToWrite } from '@/lib/runtime/authz'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 
-export const revalidate = 0; // Force fresh data fetch to fix cached empty state
+// Listings enumerate the repo live and cache the result in the Next Data Cache
+// (see lib/publicClient.ts + lib/cacheTags.ts). No page-level revalidate hack is
+// needed: the listing fetch controls freshness and owner writes bust it via tag.
 
 export default async function BlogPage() {
   const session = await getServerSession(authOptions);
