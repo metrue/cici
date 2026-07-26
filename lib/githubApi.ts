@@ -1,6 +1,5 @@
 import { Memo, ExternalDiscussion } from './types';
 import { Octokit } from '@octokit/rest';
-import { updateBlogManifest } from './manifestUtils';
 import { contentPaths } from './content/paths';
 import { buildBlogMarkdown, slugFromTitle, extractDate, extractStatus } from './blogFrontmatter';
 import path from 'path';
@@ -169,9 +168,6 @@ export async function createBlogPost(
     message: `Add blog post: ${title}`,
     content: Buffer.from(fullContent).toString('base64'),
   })
-
-  // Update blog manifest after creating the post
-  await updateBlogManifest(accessToken, owner, repo)
 }
 
 export async function createMemo(
@@ -421,10 +417,6 @@ export async function deleteBlogPost(id: string, accessToken: string, target?: R
     })
 
     console.log('Blog post deleted successfully')
-    
-    // Update blog manifest after deleting the post
-    await updateBlogManifest(accessToken, owner, repo)
-
   } catch (error) {
     console.error('Error deleting blog post:', error)
     throw error
@@ -483,10 +475,6 @@ export async function updateBlogPost(
     )
 
     console.log('Blog post updated successfully')
-
-    // Update blog manifest after updating the post
-    await updateBlogManifest(accessToken, owner, repo)
-
   } catch (error) {
     console.error('Error updating blog post:', error)
     throw error

@@ -33,8 +33,6 @@ export const contentRel = {
   blogPost: (slug: string) => `blog/${slug}.md`,
   /** Blog post from a filename that already carries its `.md` extension. */
   blogFile: (filename: string) => `blog/${filename}`,
-  /** Derived index of blog posts. */
-  blogManifest: () => 'blog-manifest.json',
 
   /** Memos store. */
   memos: () => 'memos.json',
@@ -61,7 +59,6 @@ export const contentPaths = {
   blogDirKeep: () => under(contentRel.blogDirKeep()),
   blogPost: (slug: string) => under(contentRel.blogPost(slug)),
   blogFile: (filename: string) => under(contentRel.blogFile(filename)),
-  blogManifest: () => under(contentRel.blogManifest()),
 
   memos: () => under(contentRel.memos()),
   likes: () => under(contentRel.likes()),

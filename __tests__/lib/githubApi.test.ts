@@ -1,6 +1,7 @@
 /**
  * Unit tests for githubApi.ts module
- * Focus on blog manifest functionality and other GitHub API operations
+ * Covers blog post / memo GitHub operations. Blog listings no longer use a
+ * manifest, so create/update/delete must NOT write data/blog-manifest.json.
  */
 
 import {
@@ -74,17 +75,7 @@ describe('githubApi', () => {
   })
 
   describe('createBlogPost', () => {
-    it('should create a blog post and update manifest', async () => {
-      // Override the default mock to simulate manifest not existing initially
-      mockOctokit.repos.getContent
-        .mockReset()
-        .mockImplementation((params: any) => {
-          if (params.path === 'data/blog-manifest.json') {
-            throw { status: 404 } // manifest doesn't exist
-          }
-          return Promise.resolve({ data: { content: 'dGVzdA==', sha: 'test-sha' } })
-        })
-
+    it('should create the blog post file', async () => {
       const { isNotFoundError } = require('@/lib/githubUtils')
       isNotFoundError.mockImplementation((error: any) => error.status === 404)
 
@@ -97,58 +88,28 @@ describe('githubApi', () => {
           message: 'Add blog post: Test Post',
         })
       )
-
-      // Should have been called at least once for the blog post
-      expect(mockOctokit.repos.createOrUpdateFileContents).toHaveBeenCalled()
     })
 
-    it('should handle existing manifest when creating blog post', async () => {
-      const existingManifest = { files: ['existing-post.md'] }
-      
-      // Override mock to return existing manifest
-      mockOctokit.repos.getContent
-        .mockReset()
-        .mockImplementation((params: any) => {
-          if (params.path === 'data/blog-manifest.json') {
-            return Promise.resolve({
-              data: { 
-                content: Buffer.from(JSON.stringify(existingManifest)).toString('base64'), 
-                sha: 'manifest-sha' 
-              }
-            })
-          }
-          return Promise.resolve({ data: { content: 'dGVzdA==', sha: 'test-sha' } })
-        })
+    it('should NOT write a blog manifest', async () => {
+      const { isNotFoundError } = require('@/lib/githubUtils')
+      isNotFoundError.mockImplementation((error: any) => error.status === 404)
 
       await createBlogPost('New Post', 'New content', 'fake-token')
 
-      // Verify blog post was created
-      expect(mockOctokit.repos.createOrUpdateFileContents).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: 'data/blog/new-post.md',
-          message: 'Add blog post: New Post',
-        })
+      // Listings enumerate the repo live now — no manifest is written.
+      expect(mockOctokit.repos.createOrUpdateFileContents).not.toHaveBeenCalledWith(
+        expect.objectContaining({ path: 'data/blog-manifest.json' })
       )
     })
   })
 
   describe('deleteBlogPost', () => {
-    it('should delete a blog post and update manifest', async () => {
-      const existingManifest = { files: ['post-to-delete.md', 'other-post.md'] }
-      
+    it('should delete the blog post file without touching a manifest', async () => {
       mockOctokit.repos.getContent
         .mockReset()
         .mockImplementation((params: any) => {
           if (params.path === 'data/blog/post-to-delete.md') {
             return Promise.resolve({ data: { sha: 'file-sha' } })
-          }
-          if (params.path === 'data/blog-manifest.json') {
-            return Promise.resolve({
-              data: { 
-                content: Buffer.from(JSON.stringify(existingManifest)).toString('base64'), 
-                sha: 'manifest-sha' 
-              }
-            })
           }
           throw { status: 404 }
         })
@@ -166,7 +127,10 @@ describe('githubApi', () => {
         sha: 'file-sha',
       })
 
-      // File deletion is complete - no manifest update needed
+      // No manifest is written back.
+      expect(mockOctokit.repos.createOrUpdateFileContents).not.toHaveBeenCalledWith(
+        expect.objectContaining({ path: 'data/blog-manifest.json' })
+      )
     })
 
     it('should handle URL-encoded blog post IDs', async () => {

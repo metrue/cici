@@ -153,7 +153,7 @@ This post is being read by thousands of visitors simultaneously.`
   })
 
   describe('✅ Rate limit solution validation', () => {
-    it('should verify no GitHub API endpoints are called', async () => {
+    it('limits GitHub API usage to the single, cached blog directory listing', async () => {
       const mockData = [{ id: '1', content: 'Public data', timestamp: '2024-01-01' }]
 
       ;(global.fetch as jest.Mock).mockResolvedValue({
@@ -173,20 +173,24 @@ This post is being read by thousands of visitors simultaneously.`
         client.checkRepositoryHealth(),
       ])
 
-      // ✅ Verify no API endpoints were called
       const fetchCalls = (global.fetch as jest.Mock).mock.calls
-      const apiCalls = fetchCalls.filter(call => 
-        call[0].includes('api.github.com') || 
-        call[0].includes('/repos/') ||
-        call[0].includes('/user')
+      const apiCalls = fetchCalls.filter(call => call[0].includes('api.github.com'))
+
+      // The ONLY api.github.com call is the blog directory listing — raw URLs
+      // can't enumerate a directory. Everything else stays on raw.
+      expect(apiCalls).toHaveLength(1)
+      expect(apiCalls[0][0]).toContain('/contents/data/blog')
+
+      // ✅ And that one listing call is cached (revalidate window + bust tag),
+      // so it costs at most one upstream request per window regardless of traffic.
+      expect(apiCalls[0][1]).toEqual(
+        expect.objectContaining({ next: expect.objectContaining({ tags: ['blog-index'] }) })
       )
-      
-      expect(apiCalls).toHaveLength(0)
-      
-      // ✅ All calls use raw.githubusercontent.com
-      const rawCalls = fetchCalls.filter(call => call[0].includes('raw.githubusercontent.com'))
-      expect(rawCalls.length).toBeGreaterThan(0)
-      expect(rawCalls.length).toBe(fetchCalls.length)
+
+      // ✅ Every non-listing call uses raw.githubusercontent.com (no API budget).
+      const nonListing = fetchCalls.filter(call => !call[0].includes('api.github.com'))
+      expect(nonListing.length).toBeGreaterThan(0)
+      nonListing.forEach(call => expect(call[0]).toContain('raw.githubusercontent.com'))
     })
 
     it('should demonstrate scalability for high-traffic blogs', async () => {

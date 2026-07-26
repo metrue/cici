@@ -1,9 +1,11 @@
 import { createYoga } from 'graphql-yoga'
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import { NextRequest } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { getToken } from 'next-auth/jwt'
 import { getProvider } from '@/lib/runtime/provider'
 import { isAuthorizedToWrite } from '@/lib/runtime/authz'
+import { BLOG_INDEX_TAG } from '@/lib/cacheTags'
 import { Memo, BlogPost, Link, ExternalDiscussion } from '@/lib/types'
 import {
   getClientIP, 
@@ -412,6 +414,8 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
           if (!post) {
             throw new Error('Blog post not found after update')
           }
+          // Refresh the cached blog listing so the edit shows immediately.
+          revalidateTag(BLOG_INDEX_TAG)
           return post
         } else {
           // Create new blog post
@@ -420,6 +424,8 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
           if (!post) {
             throw new Error('Blog post not found after creation')
           }
+          // Refresh the cached blog listing so the new post shows immediately.
+          revalidateTag(BLOG_INDEX_TAG)
           return post
         }
       } catch (error) {
@@ -433,6 +439,8 @@ const resolvers: { Query: QueryResolvers; Mutation: MutationResolvers } = {
 
       try {
         await client.deleteBlogPost(id)
+        // Refresh the cached blog listing so the removal shows immediately.
+        revalidateTag(BLOG_INDEX_TAG)
         return true
       } catch (error) {
         console.error('Error deleting blog post:', error)

@@ -3,8 +3,12 @@ import { createGitHubAPIClient } from './client'
 import { LikesDatabase } from './likeUtils'
 import { parseBlogPostMetadata } from './markdown'
 import { contentPaths } from './content/paths'
+import { BLOG_INDEX_TAG, BLOG_INDEX_REVALIDATE } from './cacheTags'
 
 const REPO = 'cici'
+
+/** Branch the public client reads from (matches the raw base URL below). */
+const BRANCH = 'main'
 
 const getFirstImageURLFrom = (content: string): string | null => {
   const imgRegex = /(https?:\/\/[^\s]+?\.(?:png|jpg|jpeg|gif|webp))/i
@@ -23,44 +27,69 @@ const getFirstImageURLFrom = (content: string): string | null => {
 export class PublicGitHubClient {
   private baseUrl: string
   private owner: string
+  private repo: string
 
   constructor(owner: string, repo: string = REPO) {
     this.owner = owner
-    this.baseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main`
+    this.repo = repo
+    this.baseUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${BRANCH}`
   }
 
   /**
-   * Fetch blog posts using raw GitHub URLs (no API limits)
-   * Note: PublicClient cannot list directories, so this requires a manifest file
+   * List the `.md` filenames in the blog directory via the GitHub Contents API.
+   *
+   * raw.githubusercontent.com can serve a file by path but cannot list a
+   * directory, so enumerating posts requires one API call. It runs
+   * unauthenticated (60 req/hr per IP), so the result is cached in the Next
+   * Data Cache (`revalidate`, tag `blog-index`) — one upstream call per window
+   * regardless of traffic — and invalidated on owner writes via
+   * `revalidateTag(BLOG_INDEX_TAG)`. Post bodies are still read from raw URLs
+   * (see `getBlogPost`), which do not count against the API budget.
+   */
+  private async listBlogFilenames(): Promise<string[]> {
+    const url = `https://api.github.com/repos/${this.owner}/${this.repo}/contents/${contentPaths.blogDir()}?ref=${BRANCH}`
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+      next: { revalidate: BLOG_INDEX_REVALIDATE, tags: [BLOG_INDEX_TAG] },
+    })
+
+    if (!response.ok) {
+      // 404 = no blog dir yet; anything else (e.g. 403 rate limit) degrades to
+      // an empty list rather than throwing. The Data Cache serves the last good
+      // listing while a failed revalidation is retried.
+      if (response.status !== 404) {
+        console.warn(`Blog directory listing failed: HTTP ${response.status} ${response.statusText}`)
+      }
+      return []
+    }
+
+    const entries = await response.json()
+    if (!Array.isArray(entries)) return []
+    return entries
+      .filter(
+        (e) => e && e.type === 'file' && typeof e.name === 'string' && e.name.endsWith('.md') && e.name !== '.gitkeep'
+      )
+      .map((e) => e.name as string)
+  }
+
+  /**
+   * Fetch all blog posts: enumerate the directory live, then read each body
+   * from raw URLs. No manifest — a post is listed the instant its `.md` lands,
+   * however it was added (editor or a direct git commit).
    */
   async getBlogPosts(includeAuthenticatedDrafts = false): Promise<BlogPost[]> {
     try {
-      // Try to fetch a blog manifest file if it exists
-      try {
-        const manifestResponse = await fetch(`${this.baseUrl}/${contentPaths.blogManifest()}`)
-        if (manifestResponse.ok) {
-          const manifest = await manifestResponse.json()
-          // Handle both legacy and new manifest formats
-          const files = manifest.files || [...(manifest.published || []), ...(manifest.drafts || [])]
-          const posts = await Promise.all(
-            files.map((filename: string) => this.getBlogPost(filename))
-          )
-          const validPosts = posts.filter((post): post is BlogPost => post !== null)
-          
-          // Filter based on authentication
-          if (includeAuthenticatedDrafts) {
-            return validPosts
-          } else {
-            return validPosts.filter(post => post.status === 'published')
-          }
-        }
-      } catch {
-        // Manifest doesn't exist, continue to fallback
-      }
+      const filenames = await this.listBlogFilenames()
+      const posts = await Promise.all(filenames.map((filename) => this.getBlogPost(filename)))
+      const validPosts = posts.filter((post): post is BlogPost => post !== null)
 
-      // If manifest doesn't exist, return empty array
-      console.warn('Blog manifest not found, returning empty array')
-      return []
+      if (includeAuthenticatedDrafts) {
+        return validPosts
+      }
+      return validPosts.filter((post) => post.status === 'published')
     } catch (error) {
       console.error('Error fetching blog posts via raw URLs:', error)
       throw error
@@ -72,8 +101,10 @@ export class PublicGitHubClient {
    */
   async getBlogPost(filename: string): Promise<BlogPost | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/${contentPaths.blogFile(filename)}`)
-      
+      const response = await fetch(`${this.baseUrl}/${contentPaths.blogFile(filename)}`, {
+        next: { revalidate: BLOG_INDEX_REVALIDATE, tags: [BLOG_INDEX_TAG] },
+      })
+
       if (!response.ok) {
         if (response.status === 404) {
           return null
