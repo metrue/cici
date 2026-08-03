@@ -59,6 +59,7 @@
     "graphql": "^16.11.0",
     "graphql-yoga": "^5.15.1",
     "gray-matter": "^4.0.3",
+    "image-size": "^2.0.2",
     "katex": "^0.16.11",
     "lucide-react": "^0.441.0",
     "marked": "^14.1.2",
@@ -72,6 +73,7 @@
     "react-katex": "^3.0.1",
     "react-markdown": "^9.0.1",
     "react-masonry-css": "^1.0.16",
+    "react-photo-album": "^3.6.1",
     "react-syntax-highlighter": "^15.6.1",
     "react-tooltip": "^5.28.0",
     "rehype-highlight": "^7.0.0",
@@ -83,6 +85,7 @@
     "remark-math": "^6.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "yet-another-react-lightbox": "^3.32.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

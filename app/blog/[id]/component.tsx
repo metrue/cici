@@ -25,22 +25,9 @@ import {
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/ui/use-toast'
+import { decodeBlogContent, type EnrichedContentSegment } from '@/lib/markdown'
 
-function removeFrontmatter(content: string): string {
-  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n/
-  return content.replace(frontmatterRegex, '')
-}
-
-function decodeContent(content: string): string {
-  try {
-    return decodeURIComponent(content)
-  } catch (error) {
-    console.error('Error decoding content:', error)
-    return content
-  }
-}
-
-export const PostContainer = ({ post, discussionsComponent }: { post: BlogPost, discussionsComponent?: React.ReactNode }) => {
+export const PostContainer = ({ post, segments, discussionsComponent }: { post: BlogPost, segments: EnrichedContentSegment[], discussionsComponent?: React.ReactNode }) => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const router = useRouter()
@@ -60,9 +47,7 @@ export const PostContainer = ({ post, discussionsComponent }: { post: BlogPost, 
     })
   }, [trackEvent, post.id, post.title, post.date])
 
-  const decodedTitle = decodeContent(post.title)
-  const decodedContent = decodeContent(post.content)
-  const contentWithoutFrontmatter = removeFrontmatter(decodedContent)
+  const decodedTitle = decodeBlogContent(post.title)
 
   const handleDeleteBlogPost = async () => {
     if (!session?.accessToken) {
@@ -160,7 +145,7 @@ export const PostContainer = ({ post, discussionsComponent }: { post: BlogPost, 
       <BlogPostContent
         title={decodedTitle}
         date={post.date}
-        content={contentWithoutFrontmatter}
+        segments={segments}
         slug={post.id}
         headerContent={status === 'authenticated' ? headerContent : null}
         discussionsComponent={discussionsComponent}
