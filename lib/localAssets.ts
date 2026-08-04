@@ -12,6 +12,22 @@ import { localDataDir } from './runtime/mode'
 
 const ASSETS_SUBDIR = 'assets'
 
+/** Public URL prefix under which local assets are served (by app/api/asset). */
+export const ASSET_URL_PREFIX = '/api/asset/'
+
+/**
+ * Inverse of the URL `saveLocalAsset` returns: map an `/api/asset/<path>` URL
+ * back to the path segments `readLocalAsset` expects, or null if it isn't a
+ * local-asset URL. Single source of truth for the `/api/asset/` contract so the
+ * writer (saveLocalAsset) and readers (this + the dimension resolver) can't drift.
+ */
+export function assetUrlToSegments(url: string): string[] | null {
+  if (!url.startsWith(ASSET_URL_PREFIX)) return null
+  const rest = url.slice(ASSET_URL_PREFIX.length).split(/[?#]/)[0]
+  if (!rest) return null
+  return rest.split('/').filter(Boolean)
+}
+
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -53,7 +69,7 @@ export async function saveLocalAsset(
   const buffer = Buffer.from(await file.arrayBuffer())
   fs.writeFileSync(path.join(absDir, filename), buffer)
   // URL the browser/markdown will use; served by app/api/asset/[...path].
-  return `/api/asset/${relDir}/${filename}`
+  return `${ASSET_URL_PREFIX}${relDir}/${filename}`
 }
 
 /**

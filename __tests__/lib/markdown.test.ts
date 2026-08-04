@@ -1,8 +1,11 @@
-import { 
-  extractFrontmatter, 
-  parseExternalDiscussions, 
+import {
+  extractFrontmatter,
+  parseExternalDiscussions,
   parseBlogPostMetadata,
-  removeFrontmatter 
+  removeFrontmatter,
+  decodeBlogContent,
+  normalizeBlogContent,
+  parseContentSegments
 } from '../../lib/markdown'
 
 describe('markdown parsing utilities', () => {
@@ -189,8 +192,98 @@ This is the content.`)
 This is the content.`
 
       const result = removeFrontmatter(content)
-      
+
       expect(result).toBe(content)
+    })
+  })
+
+  describe('decodeBlogContent', () => {
+    it('decodes percent-encoded content', () => {
+      expect(decodeBlogContent('a%20b')).toBe('a b')
+    })
+
+    it('returns the input unchanged when it is not valid encoded text', () => {
+      expect(decodeBlogContent('100% done')).toBe('100% done')
+    })
+  })
+
+  describe('normalizeBlogContent', () => {
+    it('decodes then strips frontmatter so srcs match what the client renders', () => {
+      const raw = `---\ntitle: T\n---\n\nHello ![a](%2Fapi%2Fasset%2Fimages%2Fx.png)`
+      expect(normalizeBlogContent(raw)).toBe('Hello ![a](/api/asset/images/x.png)')
+    })
+  })
+
+  describe('parseContentSegments', () => {
+    it('returns a single markdown segment when there are no images', () => {
+      const segments = parseContentSegments('# Title\n\nJust text.')
+      expect(segments).toEqual([{ type: 'markdown', content: '# Title\n\nJust text.' }])
+    })
+
+    it('turns a lone image between paragraphs into a one-image gallery', () => {
+      const segments = parseContentSegments('Before.\n\n![a](a.jpg)\n\nAfter.')
+      expect(segments).toEqual([
+        { type: 'markdown', content: 'Before.' },
+        { type: 'gallery', images: [{ src: 'a.jpg', alt: 'a' }] },
+        { type: 'markdown', content: 'After.' },
+      ])
+    })
+
+    it('coalesces adjacent image lines into one gallery', () => {
+      const segments = parseContentSegments('![a](a.jpg)\n![b](b.jpg)')
+      expect(segments).toEqual([
+        {
+          type: 'gallery',
+          images: [
+            { src: 'a.jpg', alt: 'a' },
+            { src: 'b.jpg', alt: 'b' },
+          ],
+        },
+      ])
+    })
+
+    it('coalesces images separated only by blank lines (blank-line-tolerant)', () => {
+      const segments = parseContentSegments('![a](a.jpg)\n\n![b](b.jpg)')
+      expect(segments).toEqual([
+        {
+          type: 'gallery',
+          images: [
+            { src: 'a.jpg', alt: 'a' },
+            { src: 'b.jpg', alt: 'b' },
+          ],
+        },
+      ])
+    })
+
+    it('starts a new gallery after intervening text', () => {
+      const body = 'p1\n\n![a](a.jpg)\n![b](b.jpg)\n\nmiddle\n\n![c](c.jpg)'
+      const segments = parseContentSegments(body)
+      expect(segments).toEqual([
+        { type: 'markdown', content: 'p1' },
+        { type: 'gallery', images: [{ src: 'a.jpg', alt: 'a' }, { src: 'b.jpg', alt: 'b' }] },
+        { type: 'markdown', content: 'middle' },
+        { type: 'gallery', images: [{ src: 'c.jpg', alt: 'c' }] },
+      ])
+    })
+
+    it('leaves inline images inside a paragraph in the markdown segment', () => {
+      const segments = parseContentSegments('Text with ![inline](x.png) inside.')
+      expect(segments).toEqual([
+        { type: 'markdown', content: 'Text with ![inline](x.png) inside.' },
+      ])
+    })
+
+    it('does not gallerify images inside fenced code blocks', () => {
+      const body = '```md\n![not a gallery](x.png)\n```'
+      const segments = parseContentSegments(body)
+      expect(segments).toEqual([{ type: 'markdown', content: body }])
+    })
+
+    it('parses the image title and keeps only the src', () => {
+      const segments = parseContentSegments('![alt](/api/asset/images/x.png "a title")')
+      expect(segments).toEqual([
+        { type: 'gallery', images: [{ src: '/api/asset/images/x.png', alt: 'alt' }] },
+      ])
     })
   })
 })
