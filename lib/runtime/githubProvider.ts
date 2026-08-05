@@ -171,7 +171,7 @@ export class GitHubProvider implements ContentProvider {
   }
 
   async uploadAsset(file: AssetInput): Promise<string> {
-    return ghUploadImage(file as unknown as File, this.requireToken(), this.target)
+    return ghUploadImage(file, this.requireToken(), this.target)
   }
 
   // --- memo + likes writes (JSON files, edited in place) ---

@@ -94,19 +94,9 @@ export async function ensureDirectoryExists(
   }
 }
 
-export async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result.split(',')[1]);
-      } else {
-        reject(new Error('Failed to convert file to base64'));
-      }
-    };
-    reader.onerror = (error) => reject(error);
-  });
+export async function fileToBase64(file: { arrayBuffer: () => Promise<ArrayBuffer> }): Promise<string> {
+  const buffer = Buffer.from(await file.arrayBuffer())
+  return buffer.toString('base64')
 }
 
 export function isNotFoundError(error: unknown): boolean {

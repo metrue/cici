@@ -481,7 +481,7 @@ export async function updateBlogPost(
   }
 }
 
-export async function uploadImage(file: File, accessToken: string, target?: RepoTarget): Promise<string> {
+export async function uploadImage(file: { name: string; arrayBuffer: () => Promise<ArrayBuffer> }, accessToken: string, target?: RepoTarget): Promise<string> {
   console.log('Uploading image...')
   if (!accessToken) {
     throw new Error('Access token is required')
