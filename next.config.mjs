@@ -15,6 +15,15 @@ const nextConfig = {
   // (e.g. a user's home dir) — that misdetection pulled a foreign Next version
   // in issue #111. Top-level in Next 15 (was experimental.* in 14).
   outputFileTracingRoot: path.dirname(fileURLToPath(import.meta.url)),
+  // The upload route dynamically imports heic-convert (HEIC→JPEG). Its libheif
+  // WASM is loaded at runtime, which nft doesn't always trace — force-include
+  // both packages so the standalone server can transcode HEIC on Vercel.
+  outputFileTracingIncludes: {
+    '/api/upload': [
+      './node_modules/heic-convert/**',
+      './node_modules/libheif-js/**',
+    ],
+  },
   // Route the ISR/fetch cache to os.tmpdir() — the standalone server runs from a
   // read-only FS on Vercel (/var/task), so the default .next/cache mkdir fails.
   cacheHandler: new URL('./cache-handler.cjs', import.meta.url).pathname,
