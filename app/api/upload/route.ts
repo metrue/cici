@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { getProvider } from '@/lib/runtime/provider'
 import { isAuthorizedToWrite } from '@/lib/runtime/authz'
+import { normalizeUploadFile } from '@/lib/imageTranscode'
+import type { AssetInput } from '@/lib/runtime/types'
 
 /**
  * Image upload — one endpoint for every backend. Routes the file through the
@@ -29,7 +31,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided.' }, { status: 400 })
     }
 
-    const url = await provider.uploadAsset(file as unknown as File)
+    // HEIC (iPhone photos) → JPEG before storing, so it renders in every
+    // browser. Non-HEIC files pass through untouched.
+    const normalized = await normalizeUploadFile(file as unknown as AssetInput)
+
+    const url = await provider.uploadAsset(normalized)
     return NextResponse.json({ url })
   } catch (error) {
     console.error('Upload failed:', error)
