@@ -11,20 +11,15 @@ interface AnalyticsProps {
 }
 
 /**
- * Configurable Umami Analytics Component
- * 
- * Features:
- * - Fully configurable via environment variables
- * - Automatic page view tracking
- * - Custom event tracking support
- * - Privacy-focused (no cookies)
- * - Open source friendly (optional)
- * 
- * Environment Variables:
- * - NEXT_PUBLIC_UMAMI_WEBSITE_ID: Your Umami website ID
- * - NEXT_PUBLIC_UMAMI_SCRIPT_URL: Your Umami script URL (default: official cloud)
- * - NEXT_PUBLIC_UMAMI_DOMAINS: Comma-separated list of domains to track
- * - NEXT_PUBLIC_ANALYTICS_ENABLED: Enable/disable analytics (default: false)
+ * Umami Analytics — privacy-focused, cookie-free tracking.
+ *
+ * Configuration priority (highest to lowest):
+ *   1. --umami-site CLI flag       → CICI_UMAMI_WEBSITE_ID env
+ *   2. site-config.json analytics  → umamiWebsiteId + enabled
+ *   3. NEXT_PUBLIC_* env vars      → legacy Vercel fallback
+ *
+ * Props are always passed from the server component (layout.tsx)
+ * so they're read at runtime, not baked at build time.
  */
 export default function Analytics({
   websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,

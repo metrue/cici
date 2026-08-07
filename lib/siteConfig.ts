@@ -20,6 +20,15 @@ export interface SiteConfig {
     github: string
     twitter: string
   }
+  /** Analytics configuration. Umami is privacy-focused and cookie-free. */
+  analytics?: {
+    /** Set to true to enable tracking */
+    enabled?: boolean
+    /** Your Umami website ID (from cloud.umami.is or self-hosted) */
+    umamiWebsiteId?: string
+    /** Custom script URL (only if self-hosting Umami) */
+    umamiScriptUrl?: string
+  }
 }
 
 export function getSiteConfig(): SiteConfig {

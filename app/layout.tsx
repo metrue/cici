@@ -1,6 +1,7 @@
 import './globals.css'
 
 import { getLocale, getMessages } from 'next-intl/server'
+import { cache } from 'react'
 
 import CreateButton from '@/components/CreateButton'
 import Head from 'next/head'
@@ -18,11 +19,14 @@ import { gowun_wodum } from '@/components/ui/font'
 import { getSiteConfig } from '@/lib/siteConfig'
 import Analytics from '@/components/Analytics'
 
+/** Memoized site-config fetch — called by both generateMetadata and RootLayout. */
+const getCachedSiteConfig = cache(async (accessToken?: string) => {
+  return (await getProvider(accessToken).getSiteConfig()) ?? getSiteConfig()
+})
+
 export async function generateMetadata(): Promise<Metadata> {
   const session = await getServerSession(authOptions)
-  // Prefer the served site's config (so --dir/--repo show their own metadata);
-  // fall back to the build-time config in production.
-  const siteConfig = (await getProvider(session?.accessToken).getSiteConfig()) ?? getSiteConfig()
+  const siteConfig = await getCachedSiteConfig(session?.accessToken)
 
   const title = siteConfig.title
   const description = siteConfig.description
@@ -66,6 +70,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const { iconPath } = await getIconPaths(session?.accessToken)
 
+  // Analytics config — priority: CLI flag > site-config.json > NEXT_PUBLIC_* env
+  const siteConfig = await getCachedSiteConfig(session?.accessToken)
+  const analytics = siteConfig?.analytics
+  const umamiWebsiteId =
+    process.env.CICI_UMAMI_WEBSITE_ID ||           // --umami-site CLI flag
+    analytics?.umamiWebsiteId ||                    // site-config.json
+    process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID        // Vercel env var (legacy)
+  const umamiScriptUrl =
+    analytics?.umamiScriptUrl ||
+    process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL
+  const analyticsEnabled =
+    !!process.env.CICI_UMAMI_WEBSITE_ID ||          // CLI flag implies enabled
+    analytics?.enabled === true ||
+    process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true'
+
   return (
     <html lang={locale}>
       <Head>
@@ -74,8 +93,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name='apple-mobile-web-app-status-bar-style' content='default' />
         <link rel='apple-touch-icon' href={iconPath} />
       </Head>
-      <Analytics />
       <body className={`${gowun_wodum.className} bg-[#f6f8fa]`}>
+        <Analytics
+          websiteId={umamiWebsiteId}
+          scriptUrl={umamiScriptUrl}
+          enabled={analyticsEnabled}
+        />
         <NextIntlClientProvider messages={messages}>
           <SessionProvider>
             <EditProvider canEdit={canEdit}>

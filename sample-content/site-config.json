@@ -14,5 +14,10 @@
   "links": {
     "github.com": "https://github.com/your-github-username",
     "x.com": "https://x.com/your_twitter_handle"
+  },
+  "analytics": {
+    "enabled": false,
+    "umamiWebsiteId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "umamiScriptUrl": "https://cloud.umami.is/script.js"
   }
 }
