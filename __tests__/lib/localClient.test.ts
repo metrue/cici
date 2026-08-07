@@ -240,7 +240,7 @@ external_discussions:
   })
 
   describe('getLinks', () => {
-    it('should return empty object when site-config.json does not exist', async () => {
+    it('should return empty object when cici.json does not exist', async () => {
       mockFs.existsSync.mockReturnValue(false)
 
       const result = await client.getLinks()

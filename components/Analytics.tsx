@@ -13,10 +13,8 @@ interface AnalyticsProps {
 /**
  * Umami Analytics — privacy-focused, cookie-free tracking.
  *
- * Props are passed from the server component (layout.tsx), which reads
- * NEXT_PUBLIC_* env vars at RUNTIME — so they work on any host, not just
- * at build time. The component defaults also read NEXT_PUBLIC_* for cases
- * where the component is used without explicit props (e.g. dev mode).
+ * Props are passed from the server component (layout.tsx) at runtime.
+ * Configuration priority: --umami-site CLI > cici.json > NEXT_PUBLIC_* env.
  */
 export default function Analytics({
   websiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,

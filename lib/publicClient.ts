@@ -165,22 +165,16 @@ export class PublicGitHubClient {
    * Fetch links using raw GitHub URLs
    */
   async getLinks(): Promise<Record<string, string>> {
-    try {
-      const response = await fetch(`${this.baseUrl}/${contentPaths.siteConfig()}`)
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          return {}
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const config = await response.json()
-      return config.links || {}
-    } catch (error) {
-      console.warn('Error fetching links via raw URLs:', error)
-      return {}
+    // Try cici.json first, fall back to site-config.json (legacy)
+    for (const p of [contentPaths.siteConfig(), contentPaths.siteConfigLegacy()]) {
+      try {
+        const response = await fetch(`${this.baseUrl}/${p}`)
+        if (!response.ok) continue
+        const config = await response.json()
+        return config.links || {}
+      } catch { /* try next path */ }
     }
+    return {}
   }
 
   /**

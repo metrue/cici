@@ -17,7 +17,7 @@ and it's exactly what a deploy serves:
 data/
   blog/            # one <slug>.md per post (front-matter + Markdown)
   memos.json       # short-form memos
-  site-config.json # title, author, social links (optional)
+  cici.json       # title, author, social links, analytics (optional)
   highlights/      # one <slug>.json per post (optional)
   likes.json       # like counts (optional)
   assets/          # images uploaded from the editor (local mode)
@@ -94,6 +94,33 @@ or a `git push`) show up without a redeploy.
 Open `/editor` to write posts and memos. In `--dir` mode it writes to disk; on the localhost
 CLI a `--token` commits back to the repo. On a hosted deploy, `/editor` requires GitHub
 sign-in and only the repo owner can commit (see the deploy note about `CICI_TOKEN` above).
+
+## Analytics (Umami)
+
+cici has built-in support for [Umami](https://umami.is) — privacy-focused analytics with
+no cookies and no GDPR banner needed.
+
+**Enable in `data/cici.json`** (your content repo):
+
+```json
+{
+  "analytics": {
+    "enabled": true,
+    "umamiWebsiteId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
+}
+```
+
+That's it — works on Vercel and locally. For the CLI, you can also pass it inline:
+
+```bash
+npx cici --dir ./data --umami-site xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+The CLI flag overrides `cici.json`. Self-hosted Umami? Add `"umamiScriptUrl"`.
+
+> **Migrating from `site-config.json`?** Rename it to `cici.json`. Both names are
+> supported, but `cici.json` is preferred.
 
 ## Develop cici itself
 

@@ -124,33 +124,35 @@ export class GitHubProvider implements ContentProvider {
   }
 
   async getSiteConfig(): Promise<SiteConfig | null> {
+    // Try cici.json first, fall back to site-config.json (legacy).
     // Authenticated read first: the public raw URL 404s on a PRIVATE repo, so
     // when we hold a token read via the GitHub contents API. Fall back to the
     // public raw URL on any error / when there's no token.
-    if (this.token) {
-      try {
-        const octokit = getOctokit(this.token)
-        const res = await octokit.repos.getContent({
-          owner: this.owner,
-          repo: this.repo,
-          path: contentPaths.siteConfig(),
-        })
-        if (!Array.isArray(res.data) && 'content' in res.data) {
-          const content = Buffer.from(res.data.content, 'base64').toString('utf-8')
-          return JSON.parse(content) as SiteConfig
+    for (const p of [contentPaths.siteConfig(), contentPaths.siteConfigLegacy()]) {
+      if (this.token) {
+        try {
+          const octokit = getOctokit(this.token)
+          const res = await octokit.repos.getContent({
+            owner: this.owner,
+            repo: this.repo,
+            path: p,
+          })
+          if (!Array.isArray(res.data) && 'content' in res.data) {
+            const content = Buffer.from(res.data.content, 'base64').toString('utf-8')
+            return JSON.parse(content) as SiteConfig
+          }
+        } catch (error) {
+          console.warn(`GitHub API config read failed for ${p}, trying next:`, error)
         }
-      } catch (error) {
-        console.warn('GitHub API site-config read failed, falling back to raw URL:', error)
       }
+      try {
+        const url = `https://raw.githubusercontent.com/${this.owner}/${this.repo}/main/${p}`
+        const res = await fetch(url)
+        if (!res.ok) continue
+        return (await res.json()) as SiteConfig
+      } catch { /* try next path */ }
     }
-    try {
-      const url = `https://raw.githubusercontent.com/${this.owner}/${this.repo}/main/${contentPaths.siteConfig()}`
-      const res = await fetch(url)
-      if (!res.ok) return null
-      return (await res.json()) as SiteConfig
-    } catch {
-      return null
-    }
+    return null
   }
 
   // --- blog + asset writes (delegate to the targeted GitHub helpers) ---
