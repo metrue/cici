@@ -153,22 +153,21 @@ class GitHubAPIClient {
   async getLinks(owner?: string): Promise<Record<string, string>> {
     const octokit = this.accessToken ? new Octokit({ auth: this.accessToken }) : new Octokit()
     const safeOwner = await this.getSafeOwner(owner)
-    try {
-      const response = await octokit.repos.getContent({
-        owner: safeOwner,
-        repo: this.repo,
-        path: contentPaths.siteConfig(),
-      })
-      if (Array.isArray(response.data) || !('content' in response.data)) {
-        return {}
-      }
-      const content = Buffer.from(response.data.content, 'base64').toString('utf-8')
-      const config = JSON.parse(content)
-      return config.links || {}
-    } catch (error) {
-      console.warn('Error fetching links:', error)
-      return {}
+    // Try cici.json first, fall back to site-config.json (legacy)
+    for (const p of [contentPaths.siteConfig(), contentPaths.siteConfigLegacy()]) {
+      try {
+        const response = await octokit.repos.getContent({
+          owner: safeOwner,
+          repo: this.repo,
+          path: p,
+        })
+        if (Array.isArray(response.data) || !('content' in response.data)) continue
+        const content = Buffer.from(response.data.content, 'base64').toString('utf-8')
+        const config = JSON.parse(content)
+        return config.links || {}
+      } catch { /* try next path */ }
     }
+    return {}
   }
 
   async getLikes(owner?: string): Promise<LikesDatabase> {

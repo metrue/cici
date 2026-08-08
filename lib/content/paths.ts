@@ -38,8 +38,10 @@ export const contentRel = {
   memos: () => 'memos.json',
   /** Likes store. */
   likes: () => 'likes.json',
-  /** Site configuration. */
-  siteConfig: () => 'site-config.json',
+  /** Site configuration (preferred name). */
+  siteConfig: () => 'cici.json',
+  /** Legacy site configuration — read as fallback. */
+  siteConfigLegacy: () => 'site-config.json',
 
   /** Highlights directory (one JSON file per post slug). */
   highlightsDir: () => 'highlights',
@@ -63,6 +65,7 @@ export const contentPaths = {
   memos: () => under(contentRel.memos()),
   likes: () => under(contentRel.likes()),
   siteConfig: () => under(contentRel.siteConfig()),
+  siteConfigLegacy: () => under(contentRel.siteConfigLegacy()),
 
   highlightsDir: () => under(contentRel.highlightsDir()),
   highlightsFile: (slug: string) => under(contentRel.highlightsFile(slug)),

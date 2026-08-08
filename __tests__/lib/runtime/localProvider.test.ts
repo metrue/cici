@@ -24,7 +24,7 @@ describe('LocalProvider (ContentProvider contract)', () => {
     await fsp.mkdir(path.join(tmpDir, 'blog'), { recursive: true })
     await fsp.writeFile(path.join(tmpDir, 'memos.json'), '[]', 'utf-8')
     await fsp.writeFile(
-      path.join(tmpDir, 'site-config.json'),
+      path.join(tmpDir, 'cici.json'),
       JSON.stringify({ title: 'My Blog', description: 'd', author: { name: 'me', bio: '', location: '' }, keywords: [], social: { github: '', twitter: '' } }),
       'utf-8'
     )

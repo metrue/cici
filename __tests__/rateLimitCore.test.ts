@@ -126,8 +126,8 @@ This post is being read by thousands of visitors simultaneously.`
       expect(results[2]).toEqual([]) // memos
       expect(results[3]).toEqual({}) // links
 
-      // ✅ No API quota consumed for 404s
-      expect(global.fetch).toHaveBeenCalledTimes(4)
+      // ✅ No API quota consumed for 404s (links now tries cici.json then site-config.json)
+      expect(global.fetch).toHaveBeenCalledTimes(5)
       const calls = (global.fetch as jest.Mock).mock.calls
       expect(calls.every(call => call[0].includes('raw.githubusercontent.com'))).toBe(true)
     })

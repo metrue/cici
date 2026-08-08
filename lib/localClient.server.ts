@@ -140,11 +140,12 @@ export class LocalFileSystemClient {
   }
 
   /**
-   * Get the full site config from local site-config.json (or null if absent).
+   * Get the full site config — tries cici.json first, falls back to site-config.json.
    */
   async getSiteConfig(): Promise<SiteConfig | null> {
     try {
-      const raw = fs.readFileSync(this.abs(contentRel.siteConfig()), 'utf-8')
+      const raw = this.readSiteConfigFile()
+      if (!raw) return null
       return JSON.parse(raw) as SiteConfig
     } catch {
       return null
@@ -152,19 +153,26 @@ export class LocalFileSystemClient {
   }
 
   /**
-   * Get links from local data/site-config.json
+   * Try cici.json first, fall back to site-config.json (legacy).
+   */
+  private readSiteConfigFile(): string | null {
+    for (const p of [contentRel.siteConfig(), contentRel.siteConfigLegacy()]) {
+      try {
+        const abs = this.abs(p)
+        if (fs.existsSync(abs)) return fs.readFileSync(abs, 'utf-8')
+      } catch { /* continue */ }
+    }
+    return null
+  }
+
+  /**
+   * Get links from cici.json (or site-config.json as fallback).
    */
   async getLinks(): Promise<Record<string, string>> {
     try {
-      const configPath = this.abs(contentRel.siteConfig())
-      
-      if (!fs.existsSync(configPath)) {
-        return {}
-      }
-
-      const content = fs.readFileSync(configPath, 'utf-8')
+      const content = this.readSiteConfigFile()
+      if (!content) return {}
       const config = JSON.parse(content)
-      
       return config.links || {}
     } catch (error) {
       console.warn('Error reading local site config:', error)

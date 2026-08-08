@@ -68,6 +68,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // (owner-only on a hosted OAuth deploy) — matches the editor/upload gate.
   const canEdit = await isAuthorizedToWrite(session)
 
+  // Analytics: cici.json config merged with env vars / CLI flag
+  const siteConfig = await getCachedSiteConfig(session?.accessToken)
+  const analytics = siteConfig?.analytics
+  const umamiWebsiteId =
+    process.env.CICI_UMAMI_WEBSITE_ID ||           // --umami-site CLI flag
+    analytics?.umamiWebsiteId ||                    // cici.json
+    process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID        // Vercel env (legacy)
+  const umamiScriptUrl =
+    analytics?.umamiScriptUrl ||
+    process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL
+  const analyticsEnabled =
+    !!process.env.CICI_UMAMI_WEBSITE_ID ||          // CLI implies enabled
+    analytics?.enabled === true ||
+    process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true'
+
   const { iconPath } = await getIconPaths(session?.accessToken)
 
   return (
@@ -80,9 +95,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </Head>
       <body className={`${gowun_wodum.className} bg-[#f6f8fa]`}>
         <Analytics
-          websiteId={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-          scriptUrl={process.env.NEXT_PUBLIC_UMAMI_SCRIPT_URL}
-          enabled={process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true'}
+          websiteId={umamiWebsiteId}
+          scriptUrl={umamiScriptUrl}
+          enabled={analyticsEnabled}
         />
         <NextIntlClientProvider messages={messages}>
           <SessionProvider>

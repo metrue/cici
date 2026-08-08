@@ -50,6 +50,7 @@ Options:
   --token <token>    GitHub token — enables editing a --repo target from THIS
                      machine (localhost, single trusted user). Ignored on a
                      hosted deploy with GitHub OAuth, where writes are owner-gated.
+  --umami-site <id>  Umami website ID for analytics (privacy-focused, no cookies)
   --port, -p <n>     Port to listen on (default: 3000)
   --host <addr>      Host to bind (default: 127.0.0.1)
   --version, -v      Print version
@@ -57,6 +58,7 @@ Options:
 
 Examples:
   npx cici --dir ~/my-blog
+  npx cici --dir ~/my-blog --umami-site abc-123
   npx cici --repo metrue/cici
   npx cici --repo metrue/cici --token ghp_xxx --port 4000
   npx cici start
@@ -65,7 +67,7 @@ Examples:
 }
 
 function parseArgs(argv) {
-  const out = { dir: undefined, repo: undefined, token: undefined, port: '3000', host: '127.0.0.1', help: false, version: false }
+  const out = { dir: undefined, repo: undefined, token: undefined, port: '3000', host: '127.0.0.1', umamiSite: undefined, help: false, version: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     const eq = arg.indexOf('=')
@@ -78,6 +80,7 @@ function parseArgs(argv) {
       case '--token': out.token = takeVal(); break
       case '--port': case '-p': out.port = takeVal(); break
       case '--host': out.host = takeVal(); break
+      case '--umami-site': out.umamiSite = takeVal(); break
       case '--help': case '-h': out.help = true; break
       case '--version': case '-v': out.version = true; break
       default:
@@ -299,6 +302,8 @@ function runServe(args) {
     if (args.token) process.env.CICI_TOKEN = args.token
     servingLabel = `${args.repo}${args.token ? '' : ' (read-only)'}`
   }
+
+  if (args.umamiSite) process.env.CICI_UMAMI_WEBSITE_ID = args.umamiSite
 
   bootServer({ port, host, servingLabel })
 }

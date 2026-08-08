@@ -4,7 +4,7 @@
 // via contentPaths.siteConfig() (client.ts / publicClient.ts / localClient.server.ts,
 // or GitHubProvider.getSiteConfig()). Keep this file's shape in sync with the
 // SiteConfig interface below.
-import siteConfig from '@/sample-content/site-config.json'
+import siteConfig from '@/sample-content/cici.json'
 import { headers } from 'next/headers'
 
 export interface SiteConfig {
@@ -19,6 +19,15 @@ export interface SiteConfig {
   social: {
     github: string
     twitter: string
+  }
+  /** Analytics configuration. Umami is privacy-focused and cookie-free. */
+  analytics?: {
+    /** Set to true to enable tracking */
+    enabled?: boolean
+    /** Your Umami website ID (from cloud.umami.is or self-hosted) */
+    umamiWebsiteId?: string
+    /** Custom script URL (only if self-hosting Umami) */
+    umamiScriptUrl?: string
   }
 }
 
