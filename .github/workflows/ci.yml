@@ -21,7 +21,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: '24.x'
         cache: 'npm'
 
     - name: Install dependencies
@@ -46,4 +46,22 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage/lcov.info
         fail_ci_if_error: false
+
+    - name: Smoke test (start server and verify)
+      run: |
+        npm run build:cli
+        export NEXTAUTH_SECRET=smoke-test-secret-do-not-use-in-prod
+        export NEXTAUTH_URL=http://localhost:4567
+        export CICI_DIR=$PWD/sample-content
+        export PORT=4567
+        node .next/standalone/server.js &
+        SERVER_PID=$!
+        for i in $(seq 1 30); do
+          if curl -s http://localhost:4567 > /dev/null 2>&1; then break; fi
+          sleep 1
+        done
+        curl -sf http://localhost:4567 | grep -q "Powered by" || { echo "FAIL: homepage"; kill $SERVER_PID; exit 1; }
+        curl -sf http://localhost:4567/blog/hello-cici | grep -q "Hello, cici" || { echo "FAIL: blog post"; kill $SERVER_PID; exit 1; }
+        echo "Smoke test passed"
+        kill $SERVER_PID
 
