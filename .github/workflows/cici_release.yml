@@ -53,6 +53,25 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Build
+        run: npm run build:cli
+
+      - name: Smoke test
+        run: |
+          export NEXTAUTH_SECRET=smoke-test-secret-do-not-use-in-prod
+          export NEXTAUTH_URL=http://localhost:4567
+          export CICI_DIR=$PWD/sample-content
+          export PORT=4567
+          node .next/standalone/server.js &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4567 > /dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          curl -sf http://localhost:4567 | grep -q "Powered by" || { echo "FAIL: homepage"; kill $SERVER_PID; exit 1; }
+          curl -sf http://localhost:4567/blog/hello-cici | grep -q "Hello, cici" || { echo "FAIL: blog post"; kill $SERVER_PID; exit 1; }
+          kill $SERVER_PID
+
       - name: Verify tag matches package version
         run: |
           PKG_VERSION="v$(node -p "require('./package.json').version")"

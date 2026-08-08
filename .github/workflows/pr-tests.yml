@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x, 22.x]
+        node-version: [20.x, 22.x, 24.x]
 
     steps:
     - name: Checkout code
@@ -67,4 +67,39 @@ jobs:
 
     - name: TypeScript type check
       run: npx tsc --noEmit
+
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build:cli
+
+    - name: Start server and verify
+      run: |
+        export NEXTAUTH_SECRET=smoke-test-secret-do-not-use-in-prod
+        export NEXTAUTH_URL=http://localhost:3456
+        export CICI_DIR=$PWD/sample-content
+        export PORT=3456
+        node .next/standalone/server.js &
+        SERVER_PID=$!
+        for i in $(seq 1 30); do
+          if curl -sf http://localhost:3456 > /tmp/homepage.html 2>&1; then break; fi
+          sleep 1
+        done
+        echo "=== Status: $? ==="
+        curl -sf http://localhost:3456 | grep -q "Powered by" && echo "Homepage OK" || { echo "FAIL: homepage"; kill $SERVER_PID; exit 1; }
+        curl -sf http://localhost:3456/blog/hello-cici | grep -q "Hello, cici" && echo "Blog post OK" || { echo "FAIL: blog post"; kill $SERVER_PID; exit 1; }
+        kill $SERVER_PID
 
