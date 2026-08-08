@@ -18,6 +18,7 @@ import { getServerSession } from 'next-auth/next'
 import { gowun_wodum } from '@/components/ui/font'
 import { getSiteConfig } from '@/lib/siteConfig'
 import Analytics from '@/components/Analytics'
+import Footer from '@/components/Footer'
 
 /** Memoized site-config fetch — used by both generateMetadata and RootLayout. */
 const getCachedSiteConfig = cache(async (accessToken?: string) => {
@@ -104,6 +105,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <EditProvider canEdit={canEdit}>
               <main className='pb-20 m-auto'>{children}</main>
               <CreateButton messages={messages} />
+              <Footer />
               <Toaster />
             </EditProvider>
           </SessionProvider>
