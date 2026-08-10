@@ -1,5 +1,6 @@
 import { DiscussionServer, type ExternalDiscussion } from 'discussing'
 import { headers } from 'next/headers'
+import Image from 'next/image'
 
 interface BlogDiscussionsProps {
   discussions?: ExternalDiscussion[]
@@ -49,7 +50,12 @@ export default async function BlogDiscussions({ discussions }: BlogDiscussionsPr
     <DiscussionServer
       discussions={discussions}
       className="mt-8 pt-6 border-t border-gray-100"
-      fetchOptions={{ 
+      // Route avatars through next/image: cici's server fetches the remote
+      // avatar and serves it same-origin via /_next/image, so the browser never
+      // talks to cdn.v2ex.com directly — no third-party cookies, plus WebP
+      // optimization (issue #134).
+      ImageComponent={Image}
+      fetchOptions={{
         cacheTimeout: 300,
         userAgent
       }}

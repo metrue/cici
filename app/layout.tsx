@@ -4,8 +4,7 @@ import { getLocale, getMessages } from 'next-intl/server'
 import { cache } from 'react'
 
 import CreateButton from '@/components/CreateButton'
-import Head from 'next/head'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { SessionProvider } from '../components/SessionProvider'
 import { EditProvider } from '@/components/EditContext'
@@ -32,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = siteConfig.title
   const description = siteConfig.description
 
-  const { iconPath } = await getIconPaths(session?.accessToken)
+  const { iconPath, appleTouchIconPath } = await getIconPaths(session?.accessToken)
 
   return {
     title,
@@ -42,6 +41,8 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: siteConfig.author.name,
     publisher: siteConfig.author.name,
     manifest: '/manifest.json',
+    icons: { apple: appleTouchIconPath },
+    appleWebApp: { capable: true, statusBarStyle: 'default' },
     openGraph: {
       title,
       description,
@@ -59,6 +60,12 @@ export async function generateMetadata(): Promise<Metadata> {
       site: `@${siteConfig.social.twitter}`,
     },
   }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -84,16 +91,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     analytics?.enabled === true ||
     process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true'
 
-  const { iconPath } = await getIconPaths(session?.accessToken)
-
   return (
     <html lang={locale}>
-      <Head>
-        <meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover' />
-        <meta name='apple-mobile-web-app-capable' content='yes' />
-        <meta name='apple-mobile-web-app-status-bar-style' content='default' />
-        <link rel='apple-touch-icon' href={iconPath} />
-      </Head>
       <body className={`${gowun_wodum.className} bg-[#f6f8fa]`}>
         <Analytics
           websiteId={umamiWebsiteId}
