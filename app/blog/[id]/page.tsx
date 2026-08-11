@@ -1,12 +1,12 @@
-import { PostContainer } from './component'
+import { PostView, PostActions } from './component'
+import { BlogPostContent } from '@/components/BlogPostContent'
 import { getProvider } from '@/lib/runtime/provider'
 import BlogDiscussions from '@/components/BlogDiscussions'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
 import {
   normalizeBlogContent,
   parseContentSegments,
   enrichSegmentsWithDimensions,
+  decodeBlogContent,
   type EnrichedContentSegment,
 } from '@/lib/markdown'
 import { resolveImageDimensions } from '@/lib/imageDimensions.server'
@@ -29,9 +29,10 @@ async function buildSegments(rawContent: string): Promise<EnrichedContentSegment
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const session = await getServerSession(authOptions);
-  const client = getProvider(session?.accessToken)
-  // Fetch the single post directly instead of loading every post and .find()-ing.
+  // Public reads use the anonymous provider: the content repo is public (see
+  // lib/runtime/config.ts), so no session token is needed to read a post. Writes
+  // (edit/delete) run client-side with the visitor's OAuth token.
+  const client = getProvider()
   const post = await client.getBlogPost(decodeURIComponent(id))
 
   if (!post) {
@@ -39,7 +40,26 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   const segments = await buildSegments(post.content)
+  const decodedTitle = decodeBlogContent(post.title)
   const discussionsComponent = post.discussions ? <BlogDiscussions discussions={post.discussions} /> : null
 
-  return <PostContainer post={post} segments={segments} discussionsComponent={discussionsComponent} />
+  // The article is rendered on the server and passed as children into the
+  // client shell, so react-markdown / Prism / KaTeX never reach the browser.
+  const article = (
+    <BlogPostContent
+      title={decodedTitle}
+      date={post.date}
+      segments={segments}
+      slug={post.id}
+      headerContent={<PostActions postId={post.id} />}
+      discussionsComponent={discussionsComponent}
+      location={post.city ? { city: post.city, street: post.street } : undefined}
+    />
+  )
+
+  return (
+    <PostView postId={post.id} title={decodedTitle} date={post.date}>
+      {article}
+    </PostView>
+  )
 }

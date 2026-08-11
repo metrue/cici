@@ -31,9 +31,9 @@ export default function CreateButton({
   return (
     <Link
       href={createLink}
-      className="fixed bottom-9 right-9 p-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full shadow-lg z-20 flex items-center justify-center"
+      className="fixed bottom-9 right-9 p-3 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full shadow-lg z-20 flex items-center justify-center"
     >
-      <FiPlus className="w-6 h-6" />
+      <FiPlus className="w-6 h-6" aria-hidden="true" />
       <span className="sr-only">
         {isMemosPage
           ? (messages.createNewMemo as string)

@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BlogPostContent } from '@/components/BlogPostContent'
 import { HighlightLayer } from '@/components/Highlights/HighlightLayer'
 import { useUmamiTracking } from '@/components/Analytics'
-import type { BlogPost } from '@/lib/types'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,29 +23,48 @@ import {
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/ui/use-toast'
-import { decodeBlogContent, type EnrichedContentSegment } from '@/lib/markdown'
 
-export const PostContainer = ({ post, segments, discussionsComponent }: { post: BlogPost, segments: EnrichedContentSegment[], discussionsComponent?: React.ReactNode }) => {
+/**
+ * Client wrapper for a blog post. Receives the server-rendered article as
+ * `children` and mounts it inside HighlightLayer, so the heavy markdown/Prism/
+ * KaTeX rendering stays server-side (issues #131, #132). Also fires the Umami
+ * page-view event.
+ */
+export function PostView({
+  postId,
+  title,
+  date,
+  children,
+}: {
+  postId: string
+  title: string
+  date: string
+  children: React.ReactNode
+}) {
+  const trackEvent = useUmamiTracking()
+
+  useEffect(() => {
+    trackEvent('blog-post-view', { postId, postTitle: title, postDate: date })
+  }, [trackEvent, postId, title, date])
+
+  return <HighlightLayer postId={postId}>{children}</HighlightLayer>
+}
+
+/**
+ * Owner-only edit/delete menu shown above the post. Renders nothing for
+ * anonymous readers, so it never appears in the public (Lighthouse) DOM.
+ */
+export function PostActions({ postId }: { postId: string }) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  // eslint-disable-next-line
   const { data: session, status } = useSession()
-  const trackEvent = useUmamiTracking()
-
   const t = useTranslations('HomePage')
 
-  // Track blog post view
-  useEffect(() => {
-    trackEvent('blog-post-view', {
-      postId: post.id,
-      postTitle: post.title,
-      postDate: post.date
-    })
-  }, [trackEvent, post.id, post.title, post.date])
-
-  const decodedTitle = decodeBlogContent(post.title)
+  if (status !== 'authenticated') {
+    return null
+  }
 
   const handleDeleteBlogPost = async () => {
     if (!session?.accessToken) {
@@ -59,16 +76,14 @@ export const PostContainer = ({ post, segments, discussionsComponent }: { post: 
     try {
       const response = await fetch('/api/graphql', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `
             mutation DeleteBlogPost($id: String!) {
               deleteBlogPost(id: $id)
             }
           `,
-          variables: { id: post.id },
+          variables: { id: postId },
         }),
       })
 
@@ -76,20 +91,12 @@ export const PostContainer = ({ post, segments, discussionsComponent }: { post: 
       if (result.errors) {
         throw new Error(result.errors[0].message)
       }
-
       if (!response.ok) {
         throw new Error('Failed to delete blog post')
       }
 
-      toast({
-        title: t('success'),
-        description: t('blogPostDeleted'),
-        duration: 3000,
-      })
-
-      setTimeout(() => {
-        router.push('/blog')
-      }, 500)
+      toast({ title: t('success'), description: t('blogPostDeleted'), duration: 3000 })
+      setTimeout(() => router.push('/blog'), 500)
     } catch (error) {
       console.error('Error deleting blog post:', error)
       toast({
@@ -104,16 +111,16 @@ export const PostContainer = ({ post, segments, discussionsComponent }: { post: 
     }
   }
 
-  const headerContent = (
-    <>
+  return (
+    <div className='flex justify-end mb-6'>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant='ghost' className='h-8 w-8 p-0'>
-            <AiOutlineEllipsis className='h-4 w-4' />
+          <Button variant='ghost' className='h-8 w-8 p-0' aria-label='Post actions'>
+            <AiOutlineEllipsis className='h-4 w-4' aria-hidden='true' />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
-          <DropdownMenuItem onSelect={() => router.push(`/editor?type=blog&id=${post.id}`)}>
+          <DropdownMenuItem onSelect={() => router.push(`/editor?type=blog&id=${postId}`)}>
             {t('edit')}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setIsDeleteDialogOpen(true)}>
@@ -137,20 +144,6 @@ export const PostContainer = ({ post, segments, discussionsComponent }: { post: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
-  )
-
-  return (
-    <HighlightLayer postId={post.id}>
-      <BlogPostContent
-        title={decodedTitle}
-        date={post.date}
-        segments={segments}
-        slug={post.id}
-        headerContent={status === 'authenticated' ? headerContent : null}
-        discussionsComponent={discussionsComponent}
-        location={post.city ? { city: post.city, street: post.street } : undefined}
-      />
-    </HighlightLayer>
+    </div>
   )
 }

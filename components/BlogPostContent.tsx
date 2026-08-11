@@ -1,5 +1,8 @@
-'use client'
-
+// Server component: the article body is rendered entirely on the server, so
+// react-markdown, the Prism syntax highlighter, and KaTeX never ship to (or
+// hydrate on) the client. The only client islands inside are PhotoGallery
+// (lightbox) and LikeButton. See app/blog/[id]/page.tsx for how this is passed
+// as children into the client HighlightLayer. (issues #131, #132)
 import 'katex/dist/katex.min.css'
 
 
@@ -67,7 +70,7 @@ const markdownComponents: Components = {
   a: ({ children, ...props }) => (
     <a
       {...props}
-      className='text-gray-400 no-underline hover:text-gray-600 hover:underline hover:underline-offset-4 transition-colors duration-200 break-words'
+      className='text-gray-600 no-underline hover:text-gray-900 hover:underline hover:underline-offset-4 transition-colors duration-200 break-words'
       target='_blank'
       rel='noopener noreferrer'
     >
@@ -75,7 +78,8 @@ const markdownComponents: Components = {
     </a>
   ),
   blockquote: ({ children }) => (
-    <blockquote className='pl-4 border-l-4 border-gray-200 text-gray-400'>
+    // text-gray-600 (#4b5563) clears WCAG AA on white (~7:1); gray-400 did not (issue #133).
+    <blockquote className='pl-4 border-l-4 border-gray-300 text-gray-600'>
       {children}
     </blockquote>
   ),
@@ -91,19 +95,20 @@ const markdownComponents: Components = {
     <img
       {...props}
       alt={props.alt ?? ''}
+      loading='lazy'
+      decoding='async'
       className='inline-block max-w-full h-auto rounded align-middle'
     />
   ),
 }
 
 export function BlogPostContent({ title, date, segments, slug, headerContent, discussionsComponent, location }: BlogPostContentProps) {
+  const firstGalleryIndex = segments.findIndex((segment) => segment.type === 'gallery')
   return (
     <div className='max-w-3xl mx-auto px-4 py-8'>
-      {headerContent && (
-        <div className='flex justify-end mb-6'>
-          {headerContent}
-        </div>
-      )}
+      {/* headerContent (owner-only PostActions) provides its own layout wrapper
+          and renders nothing for anonymous readers — no empty spacer div. */}
+      {headerContent}
       <main className='bg-white rounded-lg border border-gray-200 p-8'>
         <header className='mb-8'>
           <h1 className='text-3xl font-bold leading-tight mb-3 text-gray-900'>
@@ -122,7 +127,14 @@ export function BlogPostContent({ title, date, segments, slug, headerContent, di
         <div className='prose prose-lg max-w-none text-gray-900 leading-relaxed prose-p:my-3 prose-img:my-0'>
           {segments.map((segment, i) =>
             segment.type === 'gallery' ? (
-              <PhotoGallery key={i} images={segment.images} containerWidth={PROSE_COLUMN_WIDTH} />
+              // The first gallery holds the most likely LCP image — render its
+              // first photo eagerly with fetchpriority=high (issue #132).
+              <PhotoGallery
+                key={i}
+                images={segment.images}
+                containerWidth={PROSE_COLUMN_WIDTH}
+                priorityFirstImage={i === firstGalleryIndex}
+              />
             ) : (
               <ReactMarkdown
                 key={i}

@@ -6,11 +6,12 @@ import { Github } from "lucide-react";
 
 const GitHubSignInButton = () => {
   return (
-    <Button 
-      onClick={() => signIn("github")} 
+    <Button
+      onClick={() => signIn("github")}
+      aria-label="Sign in with GitHub"
       className="rounded-full w-12 h-12 p-0 flex items-center justify-center"
     >
-      <Github className="h-5 w-5" />
+      <Github className="h-5 w-5" aria-hidden="true" />
     </Button>
   );
 };

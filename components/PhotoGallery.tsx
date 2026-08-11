@@ -10,6 +10,7 @@
  * client-side probing, no layout shift.
  */
 
+import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { RowsPhotoAlbum, type Photo } from 'react-photo-album'
 import 'react-photo-album/rows.css'
@@ -28,9 +29,14 @@ interface PhotoGalleryProps {
    * on mount); without it the album renders empty server-side and shifts in.
    */
   containerWidth: number
+  /**
+   * When true, the first photo is rendered eagerly with fetchpriority=high —
+   * set only for the gallery holding the page's LCP image (issue #132).
+   */
+  priorityFirstImage?: boolean
 }
 
-export function PhotoGallery({ images, containerWidth }: PhotoGalleryProps) {
+export function PhotoGallery({ images, containerWidth, priorityFirstImage = false }: PhotoGalleryProps) {
   const [index, setIndex] = useState(-1)
   // A react-photo-album Photo already satisfies the lightbox Slide shape, so the
   // same array drives both — no second mapping.
@@ -55,13 +61,20 @@ export function PhotoGallery({ images, containerWidth }: PhotoGalleryProps) {
         defaultContainerWidth={containerWidth}
         onClick={({ index: clicked }) => setIndex(clicked)}
         render={{
-          image: (props) => (
-            // react-photo-album renders a raw <img> for its layout math; `alt`
-            // is supplied via props (the linter can't see it through the spread).
-            // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-            <img
-              {...props}
+          image: (props, { photo, index }) => (
+            // next/image serves resized AVIF/WebP same-origin via /_next/image
+            // (no GitHub redirects). Intrinsic width/height come from the photo
+            // (resolved server-side); react-photo-album's computed style sizes it
+            // in the row layout. The first photo of the LCP gallery loads eagerly.
+            <Image
+              src={props.src}
               alt={props.alt ?? ''}
+              width={photo.width}
+              height={photo.height}
+              // Below the md breakpoint the gallery is full-width; above it the
+              // prose column caps at containerWidth (no second hardcoded 672).
+              sizes={`(max-width: 768px) 100vw, ${containerWidth}px`}
+              priority={priorityFirstImage && index === 0}
               style={{ ...props.style, borderRadius: '0.5rem', cursor: 'zoom-in' }}
             />
           ),
