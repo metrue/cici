@@ -21,6 +21,7 @@ import {
 import { getSession } from '@/lib/auth'
 import { isOwner, fetchGithubLogin } from '@/lib/runtime/authz'
 import { Platform } from './schema'
+import { HighlightsWriteUnavailableError } from './highlightsRepo'
 
 export { isOwner }
 
@@ -51,6 +52,13 @@ export function apiErrorFrom(
   status = 500,
 ): NextResponse<ApiResponse<never>> {
   console.error('[highlights]', err)
+  // A missing/underprivileged write token isn't a 500 — it's a known
+  // "commenting unavailable" state. Return 503 with the actionable message
+  // (the real reason + GitHub cause are logged above for the owner).
+  if (err instanceof HighlightsWriteUnavailableError) {
+    console.error('[highlights] write unavailable:', err.reason)
+    return apiError(err.message, 503)
+  }
   const message =
     err instanceof Error && err.message ? err.message : fallback
   return apiError(message, status)
