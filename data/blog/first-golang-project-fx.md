@@ -10,9 +10,7 @@ external_discussions:
     url: https://www.reddit.com/r/programming/comments/7su688/fx_is_a_homemade_faas_tool_like_aws_lambda/
 ---
 
-
-
-
+# 用 Golang 写一个支持各种编程语言的 serverless 框架
 
 ## 前言
 

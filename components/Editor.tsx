@@ -9,7 +9,6 @@ import type { ExternalDiscussion } from "discussing";
 import { Button } from "@/components/ui/button";
 import { CgImage } from "react-icons/cg";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -26,6 +25,7 @@ import { useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/use-toast";
 import { useTranslations } from "next-intl";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { extractTitleFromContent, getContentPlaceholder } from "@/lib/titleUtils";
 
 function removeFrontmatter(content: string): string {
   const frontmatterRegex = /^---\n([\s\S]*?)\n---\n/;
@@ -40,7 +40,6 @@ export default function Editor({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
   const [type, setType] = useState(
     (searchParams.get("type") as "memo" | "blog") || defaultType
   );
@@ -122,7 +121,7 @@ export default function Editor({
         
         const blogPost = result.data.blogPost;
         if (blogPost) {
-          setTitle(blogPost.title);
+          // For existing posts, preserve the full content including title
           setContent(removeFrontmatter(blogPost.content));
           setDiscussions(blogPost.discussions || []);
           setEditingMemoId(id);
@@ -167,7 +166,6 @@ export default function Editor({
     setType(value);
     // Clear content and state when switching modes
     setContent("");
-    setTitle("");
     setEditingMemoId(null);
     setDiscussions([]);
     setPostLocation(null);
@@ -203,7 +201,7 @@ export default function Editor({
         variables = {
           ...(editingMemoId && { id: editingMemoId }),
           input: {
-            title,
+            title: extractTitleFromContent(content),
             content,
             status: isPublished ? 'published' : 'draft',
             discussions,
@@ -528,28 +526,6 @@ export default function Editor({
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Title Section - Clean and minimal */}
-          {type === "blog" && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                    Title
-                  </Label>
-                </div>
-                <Input
-                  id="title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter a compelling title..."
-                  required
-                  className="text-lg font-medium border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                  disabled={isLoading || isImageUploading}
-                />
-              </div>
-            </div>
-          )}
           
 
           {/* Content Editor */}
@@ -665,7 +641,7 @@ export default function Editor({
                   setCursorPosition(e.currentTarget.selectionStart)
                 }
                 onPaste={handlePaste}
-                placeholder={type === "blog" ? "Write your blog post content... (Markdown supported)" : "What's on your mind?"}
+                placeholder={getContentPlaceholder(type)}
                 className="min-h-[400px] p-6 border-0 focus:ring-0 resize-none"
                 required
                 disabled={isLoading || isImageUploading}
@@ -925,7 +901,7 @@ export default function Editor({
               
               <Button
                 type="submit"
-                disabled={isLoading || isImageUploading || (!content || (type === "blog" && !title))}
+                disabled={isLoading || isImageUploading || !content}
                 className="px-8 bg-black hover:bg-gray-800 text-white disabled:opacity-50"
               >
                 {isLoading ? (

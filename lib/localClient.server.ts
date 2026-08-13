@@ -3,6 +3,7 @@ import path from 'path'
 import type { BlogPost, Memo } from './types'
 import { LikesDatabase } from './likeUtils'
 import { parseBlogPostMetadata } from './markdown'
+import { extractTitleFromContent } from './titleUtils'
 
 /**
  * Local file system client for development (server-side only)
@@ -71,9 +72,13 @@ export class LocalFileSystemClient {
       // Extract first image URL from content
       const imageUrl = this.getFirstImageURLFrom(content)
 
+      // Extract title from H1 in content, fallback to frontmatter title
+      const extractedTitle = extractTitleFromContent(content)
+      const finalTitle = extractedTitle || metadata.title || filename.replace('.md', '')
+
       return {
         id: filename.replace('.md', ''),
-        title: metadata.title || filename.replace('.md', ''),
+        title: finalTitle,
         content,
         imageUrl,
         date: metadata.date ? new Date(metadata.date).toISOString() : new Date().toISOString(),

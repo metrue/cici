@@ -3,6 +3,7 @@ title: 华为鸿蒙 HarmaryOS Next 线下活动小记
 date: 2024-04-21T05:58:06.454Z
 ---
 
+# 华为鸿蒙 HarmaryOS Next 线下活动小记
 
 ![54A32E3D-418E-496C-BAC8-1DC951BB8764_1_102_o](https://github.com/metrue/picx-images-hosting/raw/master/54A32E3D-418E-496C-BAC8-1DC951BB8764_1_102_o.2h83p85e3m.webp)
 

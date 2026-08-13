@@ -1,6 +1,7 @@
 import { BlogPost, Memo } from './types'
 import { LikesDatabase } from './likeUtils'
 import { parseBlogPostMetadata } from './markdown'
+import { extractTitleFromContent } from './titleUtils'
 
 import { Octokit } from '@octokit/rest'
 import { createHybridGitHubClient } from './publicClient'
@@ -106,11 +107,16 @@ class GitHubAPIClient {
       const content = Buffer.from(contentResponse.data.content, 'base64').toString('utf-8')
       const metadata = parseBlogPostMetadata(content)
 
+      // Extract title from H1 in content, fallback to frontmatter title
+      const extractedTitle = extractTitleFromContent(content)
+      const frontmatterTitle = metadata.title
+        ? decodeURIComponent(metadata.title)
+        : decodeURIComponent(name.replace('.md', ''))
+      const finalTitle = extractedTitle || frontmatterTitle
+
       return {
         id: name.replace('.md', ''),
-        title: metadata.title
-          ? decodeURIComponent(metadata.title)
-          : decodeURIComponent(name.replace('.md', '')),
+        title: finalTitle,
         content,
         imageUrl: getFirstImageURLFrom(content),
         date: metadata.date ? new Date(metadata.date).toISOString() : new Date().toISOString(),

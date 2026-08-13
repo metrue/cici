@@ -7,6 +7,8 @@ tags: Redux
 categories: frontend
 ---
 
+# 深入浅出Redux的异步Actions
+
 Redux 是一个超棒的 state 容器，它几乎已经成为了 React 前端项目的必备 state 管理库，当然 Redux 可以用于任何应用 JavaScript 应用中，让我们看看这个很棒的库的代码情况吧。
 
 ```

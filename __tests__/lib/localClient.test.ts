@@ -52,13 +52,19 @@ describe('LocalFileSystemClient', () => {
 title: Post 1
 date: 2025-01-01
 ---
-# Post 1 Content`
+
+# Post 1
+
+Content for post 1`
 
       const mockPost2Content = `---
 title: Post 2
 date: 2025-01-02
 ---
-# Post 2 Content`
+
+# Post 2
+
+Content for post 2`
 
       mockFs.existsSync.mockImplementation((filePath) => {
         if (filePath === mockBlogDir) return true
@@ -111,7 +117,10 @@ external_discussions:
   - platform: v2ex
     url: https://v2ex.com/t/123456
 ---
-# Test Content
+
+# Test Post
+
+Test content here.
 ![image](https://example.com/image.jpg)`
 
       mockFs.existsSync.mockReturnValue(true)

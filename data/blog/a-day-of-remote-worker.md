@@ -6,6 +6,7 @@ external_discussions:
     url: https://v2ex.com/t/572394
 ---
 
+# 远程工作者的一天
 
 ![remote-work.jpg](https://github.com/metrue/Cofe/blob/main/assets/images/2025-03-22/1742652676821.jpg?raw=true)
 

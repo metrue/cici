@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { BlogPostContent } from '@/components/BlogPostContent'
 import { useUmamiTracking } from '@/components/Analytics'
 import type { BlogPost } from '@/lib/types'
+import { extractTitleFromContent, getContentWithoutTitle } from '@/lib/titleUtils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,9 +60,13 @@ export const PostContainer = ({ post, discussionsComponent }: { post: BlogPost, 
     })
   }, [trackEvent, post.id, post.title, post.date])
 
-  const decodedTitle = decodeContent(post.title)
   const decodedContent = decodeContent(post.content)
   const contentWithoutFrontmatter = removeFrontmatter(decodedContent)
+  
+  // Extract title from content (H1) and get content without the title
+  const extractedTitle = extractTitleFromContent(contentWithoutFrontmatter)
+  const displayTitle = extractedTitle || decodeContent(post.title) // Fallback to frontmatter title
+  const contentWithoutTitle = extractedTitle ? getContentWithoutTitle(contentWithoutFrontmatter) : contentWithoutFrontmatter
 
   const handleDeleteBlogPost = async () => {
     if (!session?.accessToken) {
@@ -156,9 +161,9 @@ export const PostContainer = ({ post, discussionsComponent }: { post: BlogPost, 
 
   return (
     <BlogPostContent
-      title={decodedTitle}
+      title={displayTitle}
       date={post.date}
-      content={contentWithoutFrontmatter}
+      content={contentWithoutTitle}
       slug={post.id}
       headerContent={status === 'authenticated' ? headerContent : null}
       discussionsComponent={discussionsComponent}

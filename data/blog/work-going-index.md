@@ -3,6 +3,8 @@ title: 如何衡量一个团队是否值得加入
 date: 2019-05-21T09:43:38.234Z
 ---
 
+# 如何衡量一个团队是否值得加入
+
 最近有人在 [Hacker News](https://news.ycombinator.com) 问 ["How do I find a meaningful software engineering job?"](https://news.ycombinator.com/item?id=17332796), 其中有一个人的回复我觉得有点意思, 而且和现在的看法有些些许的类似。
 
 > I'm a late-career software developer. 30+ years in the trenches doing this...

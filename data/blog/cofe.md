@@ -11,35 +11,23 @@ external_discussions:
     url: https://news.ycombinator.com/item?id=example
 ---
 
-[**Cofe**](https://github.com/metrue/cofe) is blog and memo taking app, which fully powered by Github API, and your blog posts and memos are all stored in your own repo, and all the writings are in version control. 
+# The Complete Cofe Guide
 
+[**Cofe**](https://github.com/metrue/cofe) is beautifully simple blog and memo taking app that stores everything in your Github repository in the Git version control enabled.
+No database, no complex setups, just write and publish.
 
+Full features but in a simple and elegant way:
 
-
-
-**Everything you need to know about setting up, customizing, and mastering Cofe.**
-
-Cofe is a beautifully simple blog and memo app that stores everything in your GitHub repository. No databases, no complex setups - just write and publish.
-
-> **Live Example**: See Cofe in action at [blog.minghe.me](https://blog.minghe.me) - a real blog powered by Cofe.
+* Powerful editor, fully Markdown support memo and blog writing in one place.
+* External discussions as comments, enable more engaging for both writing and reading.
+* Builtin observerbility enabled with open source Umami, visitors metrics available out of box.
+* 'Likes' functionality enable a light interactions between you and audiences.
+    
+Cannot wait to see it, check [https://blog.minghe.me](https://blog.minghe.me) - my blog powered by Cofe.
 
 ## Quick Start
 
-### 1. GitHub OAuth Setup
-
-First, create a GitHub OAuth App:
-
-1. Go to [GitHub Settings > Developer Settings > OAuth Apps](https://github.com/settings/developers)
-2. Click "New OAuth App"
-3. Fill in the details:
-   - **Application name**: `Cofe Blog`
-   - **Homepage URL**: `http://localhost:3000` (for development)
-   - **Authorization callback URL**: `http://localhost:3000/api/auth/callback/github`
-4. Save your **Client ID** and **Client Secret**
-
-### 2. Environment Setup
-
-Clone the repository and install dependencies:
+### 1. Up and Run Cofe Locally
 
 ```bash
 git clone https://github.com/metrue/Cofe.git
@@ -63,51 +51,68 @@ export NEXTAUTH_URL='http://localhost:3000'
 export NEXT_PUBLIC_ANALYTICS_ENABLED=false
 ```
 
-### 3. Start Writing
+### 2. Deploy Your Cofe Blog
 
-```bash
-npm run dev
-```
+Cofe is just another NextJS application, so you can refer to
+following documentations to know about how to do the NextJS
+application deployment on different platform, generally
+almost all the platforms do support running NextJS natively,
+no need extra complex setup.
 
-Visit `http://localhost:3000`, sign in with GitHub, and start creating!
+* Deploy Cofe on Vercel
+* Deploy Cofe on Cloudflare
+
+After above steps, you should be able to visit your blog
+and check your blog posts and memos from browser with the domain assigned to you by the
+platform.
+
+To be able to login to your editor and start writing, you
+have one last step to finish: making your blog to be a
+Github OAuth App.
+
+First, create a GitHub OAuth App:
+
+1. Go to [GitHub Settings > Developer Settings > OAuth Apps](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the details:
+   - **Application name**: Your blog site name, e.g., `Cofe Blog`
+   - **Homepage URL**: you domain for your blog site, e.g. `https://blog.minghe.me`, or you can use `http://localhost:3000` for development
+   - **Authorization callback URL**: your domain for your
+       blog site, e.g., `https://blog.minghe.me`, or `http://localhost:3000` for local development.
+4. Save your **Client ID** and **Client Secret**
+5. Set the GITHUB_USERNAME, GITHUB_ID, and GITHUB_SECRET
+   into the environment variable, then restart (or re-deploy) your blog.
+6. Now you should be able to click on the 'Github' icon and
+   oauth signin with your Github ID. and happy writing.
 
 ## Core Features
 
-### Blog Posts
+### Full functionality editor with creative addons
 
-Rich blog posts with full markdown support:
+Cofe editor fully not support Github flavor Markdown syntax,
+but also support image drag and drop to enable full media
+blog post writting.
 
-- **Markdown**: Standard and extended syntax
-- **Code Highlighting**: Syntax highlighting for 100+ languages
-- **Math**: LaTeX equations with KaTeX
-- **Images**: Drag & drop or paste images
-- **Location**: Automatic location tagging
-- **Discussions**: Link external discussions from HN, Reddit, V2EX
+The writing location awareness automatically attach current
+location to the blog post while writing enable a enhance
+writing experience with special memory with location
+recorded.
 
-### Quick Memos
+The external discussins attaching feature creatively bring
+the happening discussions about the post embeded into blog
+post, highly improve the engagement. Imagine that you share
+your awesome post to Hacknernews, Reddit, or V2EX,
+aggregating these comments into your post page will be so
+amazing, that's what it's. 
 
-Capture thoughts instantly:
+### Clean and Elegant Layout
 
-- **Fast Entry**: One-click memo creation
-- **Location Tracking**: Automatic location capture
-- **Like System**: Engage with your content
-- **Masonry Layout**: Beautiful responsive grid
+Putting the social network and profession profile links into the configuration,
+Cofe can become perfect act the front door for your internet world.
 
-### External Discussions
-
-Connect your posts to external conversations:
-
-```yaml
-external_discussions:
-  - platform: hackernews
-    url: https://news.ycombinator.com/item?id=123456
-  - platform: reddit
-    url: https://reddit.com/r/programming/comments/xyz/
-  - platform: v2ex
-    url: https://v2ex.com/t/123456
-```
-
-Cofe automatically fetches and displays comment counts and links.
+The card style layout bring the unified experience to both
+short Memo and long blog post, solid responsible design
+enable your content perectly display on all the screens.
 
 ## Advanced Configuration
 
@@ -226,127 +231,6 @@ Cofe works on any platform that supports Next.js:
 - **DigitalOcean App Platform**: Node.js app
 - **Self-hosted**: Docker or Node.js server
 
-## API Reference
-
-### GraphQL Endpoints
-
-Cofe provides a GraphQL API at `/api/graphql`:
-
-#### Queries
-
-```graphql
-# Get all blog posts
-query {
-  blogPosts {
-    id
-    title
-    content
-    date
-    city
-    street
-  }
-}
-
-# Get specific blog post
-query {
-  blogPost(id: "post-id") {
-    id
-    title
-    content
-    discussions {
-      platform
-      url
-      count
-    }
-  }
-}
-
-# Get all memos
-query {
-  memos {
-    id
-    content
-    timestamp
-    city
-    street
-  }
-}
-
-# Get like information
-query {
-  getLikes(itemType: "blog", id: "post-id") {
-    count
-    countries
-    userLiked
-  }
-}
-```
-
-#### Mutations
-
-```graphql
-# Create blog post
-mutation {
-  createBlogPost(input: {
-    title: "New Post"
-    content: "Content here..."
-    latitude: 37.7749
-    longitude: -122.4194
-    city: "San Francisco"
-    street: "Market Street"
-  }) {
-    id
-    title
-  }
-}
-
-# Create memo
-mutation {
-  createMemo(input: {
-    content: "Quick thought..."
-    latitude: 37.7749
-    longitude: -122.4194
-    city: "San Francisco"
-  }) {
-    id
-    content
-  }
-}
-
-# Toggle like
-mutation {
-  toggleLike(itemType: "blog", id: "post-id") {
-    liked
-    count
-    countries
-  }
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-**Authentication not working?**
-- Check your GitHub OAuth callback URL
-- Verify NEXTAUTH_SECRET is set
-- Ensure NEXTAUTH_URL matches your domain
-
-**Images not loading?**
-- Verify GitHub token has repo access
-- Check image URLs are publicly accessible
-- Ensure proper file permissions
-
-**Build failures?**
-- Run `npm run lint` and fix any issues
-- Check `npx tsc --noEmit` for TypeScript errors
-- Verify all environment variables are set
-
-**Location not working?**
-- Enable location permissions in browser
-- Check HTTPS requirement for geolocation
-- Verify network connectivity for reverse geocoding
-
 ### Getting Help
 
 1. **Check Issues**: [GitHub Issues](https://github.com/metrue/Cofe/issues)
@@ -394,5 +278,3 @@ mutation {
 ---
 
 **That's everything!** Cofe is designed to be simple yet powerful. Start with the basics and customize as you grow.
-
-Questions? Open an issue or start a discussion. Happy writing! ☕

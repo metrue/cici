@@ -10,8 +10,7 @@ external_discussions:
     url: https://v2ex.com/t/1163528
 ---
 
-
-
+# 在伦敦 Shoreditch 呆三天
 
 > 最近一年多冲冲撞撞的来去一些地方，突然某些时刻觉得，原来自己也拥有了某种程度的自由，移动意义上的自由.
 

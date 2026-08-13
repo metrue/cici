@@ -2,6 +2,7 @@ import { BlogPost, Memo } from './types'
 import { createGitHubAPIClient } from './client'
 import { LikesDatabase } from './likeUtils'
 import { parseBlogPostMetadata } from './markdown'
+import { extractTitleFromContent } from './titleUtils'
 
 const REPO = 'Cofe'
 
@@ -83,11 +84,16 @@ export class PublicGitHubClient {
       const content = await response.text()
       const metadata = parseBlogPostMetadata(content)
 
+      // Extract title from H1 in content, fallback to frontmatter title
+      const extractedTitle = extractTitleFromContent(content)
+      const frontmatterTitle = metadata.title
+        ? decodeURIComponent(metadata.title.trim())
+        : decodeURIComponent(filename.replace('.md', ''))
+      const finalTitle = extractedTitle || frontmatterTitle
+
       return {
         id: filename.replace('.md', ''),
-        title: metadata.title
-          ? decodeURIComponent(metadata.title.trim())
-          : decodeURIComponent(filename.replace('.md', '')),
+        title: finalTitle,
         content,
         imageUrl: getFirstImageURLFrom(content),
         date: metadata.date ? new Date(metadata.date.trim()).toISOString() : new Date().toISOString(),

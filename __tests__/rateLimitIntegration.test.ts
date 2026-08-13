@@ -55,6 +55,8 @@ title: Scalable Post
 date: 2024-01-01T00:00:00.000Z
 ---
 
+# Scalable Post
+
 This post can handle unlimited traffic!`
 
       ;(global.fetch as jest.Mock).mockResolvedValue({

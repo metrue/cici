@@ -42,6 +42,8 @@ title: Test Post
 date: 2024-01-01T00:00:00.000Z
 ---
 
+# Test Post
+
 Test content`
 
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({
