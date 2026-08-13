@@ -54,9 +54,8 @@ export function apiErrorFrom(
   console.error('[highlights]', err)
   // A missing/underprivileged write token isn't a 500 — it's a known
   // "commenting unavailable" state. Return 503 with the actionable message
-  // (the real reason + GitHub cause are logged above for the owner).
+  // (the reason + GitHub cause already printed by the console.error above).
   if (err instanceof HighlightsWriteUnavailableError) {
-    console.error('[highlights] write unavailable:', err.reason)
     return apiError(err.message, 503)
   }
   const message =

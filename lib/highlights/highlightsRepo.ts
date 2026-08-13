@@ -253,7 +253,7 @@ export class GitHubHighlightsRepo implements HighlightsRepo {
         // Surface it as an actionable "unavailable" rather than a raw GitHub error.
         if (status === 403 || status === 404) {
           throw new HighlightsWriteUnavailableError(
-            `GitHub rejected the write (status ${status}) — the write token lacks contents:write on ${this.owner}/${this.repo}`,
+            `GitHub rejected the write (status ${status}) on ${this.owner}/${this.repo} — the write token lacks contents:write, or the owner/repo is misconfigured`,
             { cause: err },
           )
         }
