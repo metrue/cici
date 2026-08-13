@@ -161,6 +161,22 @@ export class LocalFsHighlightsRepo implements HighlightsRepo {
   }
 }
 
+/**
+ * A write failed because the repo has no usable write credential — either no
+ * token at all (read-only), or a token that GitHub rejected (missing
+ * `contents:write` on the content repo). Carries a user-facing `message` and a
+ * `reason` for server logs. Routes map this to a 503 so visitors see an
+ * actionable message instead of a raw GitHub error.
+ */
+export class HighlightsWriteUnavailableError extends Error {
+  readonly reason: string
+  constructor(reason: string, options?: { cause?: unknown }) {
+    super('Commenting is temporarily unavailable. Please try again later.', options)
+    this.name = 'HighlightsWriteUnavailableError'
+    this.reason = reason
+  }
+}
+
 export class GitHubHighlightsRepo implements HighlightsRepo {
   constructor(
     private octokit: OctokitLike,
@@ -199,8 +215,8 @@ export class GitHubHighlightsRepo implements HighlightsRepo {
   ): Promise<SaveResult> {
     assertSafePostId(postId)
     if (this.readOnly) {
-      throw new Error(
-        'Highlights are read-only: no write token available. Sign in as the repo owner to add or moderate inline comments.',
+      throw new HighlightsWriteUnavailableError(
+        'no write token available (set HIGHLIGHTS_GH_TOKEN with contents:write on the content repo, or sign in as the owner)',
       )
     }
     const validated = PostHighlightsSchema.parse(data)
@@ -231,6 +247,15 @@ export class GitHubHighlightsRepo implements HighlightsRepo {
           const fresh = await this.readFile(postId)
           currentSha = fresh?.sha ?? null
           continue
+        }
+        // 403/404 on a write means the token can't write to the content repo
+        // (missing contents:write, or a fine-grained PAT without repo access).
+        // Surface it as an actionable "unavailable" rather than a raw GitHub error.
+        if (status === 403 || status === 404) {
+          throw new HighlightsWriteUnavailableError(
+            `GitHub rejected the write (status ${status}) on ${this.owner}/${this.repo} — the write token lacks contents:write, or the owner/repo is misconfigured`,
+            { cause: err },
+          )
         }
         throw err
       }

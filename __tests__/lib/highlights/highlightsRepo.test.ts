@@ -8,6 +8,7 @@ import path from 'path'
 
 import {
   GitHubHighlightsRepo,
+  HighlightsWriteUnavailableError,
   LocalFsHighlightsRepo,
   OctokitLike,
   clearHighlightsCache,
@@ -292,6 +293,17 @@ describe('GitHubHighlightsRepo', () => {
       ).rejects.toThrow()
       expect(mockRepos.createOrUpdateFileContents).not.toHaveBeenCalled()
     })
+
+    it('maps a 403 (token lacks contents:write) to HighlightsWriteUnavailableError, no retry', async () => {
+      const forbidden = new Error('Resource not accessible by personal access token') as Error & { status: number }
+      forbidden.status = 403
+      mockRepos.createOrUpdateFileContents.mockRejectedValue(forbidden)
+      await expect(
+        repo.save('post-a', makePostHighlights('post-a'), null, 'msg'),
+      ).rejects.toThrow(HighlightsWriteUnavailableError)
+      // Permission errors aren't a write-contention retry — tried exactly once.
+      expect(mockRepos.createOrUpdateFileContents).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('read-only (no write token, public repo)', () => {
@@ -319,7 +331,7 @@ describe('GitHubHighlightsRepo', () => {
     it('throws on save without ever calling octokit', async () => {
       await expect(
         readOnlyRepo.save('post-a', makePostHighlights('post-a'), null, 'msg'),
-      ).rejects.toThrow(/read-only/)
+      ).rejects.toThrow(HighlightsWriteUnavailableError)
       expect(mockRepos.createOrUpdateFileContents).not.toHaveBeenCalled()
     })
   })
