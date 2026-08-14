@@ -52,11 +52,23 @@ export function SelectionToolbar({ containerRef, onAddComment, suppressed }: Sel
         setPos(null)
         return
       }
-      // Top of selection, right gutter of the container.
-      setPos({
-        top: rect.top - containerRect.top,
-        left: containerRect.width + 8,
-      })
+      // Right gutter of the article column (Google Docs margin "+"). On
+      // narrow viewports there is no gutter — float the button just above the
+      // selection instead so it stays visible.
+      const BUTTON_SIZE = 32 // h-8 w-8
+      const gutterLeft = containerRect.width + 8
+      const gutterFits = containerRect.left + gutterLeft + BUTTON_SIZE <= window.innerWidth
+      setPos(
+        gutterFits
+          ? { top: rect.top - containerRect.top, left: gutterLeft }
+          : {
+              top: Math.max(0, rect.top - containerRect.top - 44),
+              left: Math.min(
+                Math.max(0, rect.left - containerRect.left),
+                containerRect.width - BUTTON_SIZE,
+              ),
+            },
+      )
     }
 
     const onSelectionChange = () => update()

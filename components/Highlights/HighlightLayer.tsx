@@ -234,7 +234,7 @@ export function HighlightLayer({ postId, children }: HighlightLayerProps) {
     >
       <div
         ref={articleRef}
-        className={showRail ? 'relative w-full lg:max-w-3xl lg:flex-1' : 'relative w-full'}
+        className={showRail ? 'relative w-full lg:max-w-3xl lg:flex-1' : 'relative mx-auto w-full max-w-3xl'}
       >
         {children}
         {highlights.map((h) => (
